@@ -1,0 +1,81 @@
+package com.mentoriasg4.feedback_service.controller;
+
+import com.mentoriasg4.feedback_service.dto.ReviewResponseDto;
+import com.mentoriasg4.feedback_service.dto.UserDto;
+import com.mentoriasg4.feedback_service.model.Review;
+import com.mentoriasg4.feedback_service.repository.ReviewRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/reviews")
+@CrossOrigin(origins = "*") // Permite peticiones desde React
+public class ReviewController {
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${internal.service.token}")
+    private String internalToken;
+
+    @GetMapping("/mentor/{mentorId}")
+    public ResponseEntity<List<ReviewResponseDto>> getReviewsByMentor(@PathVariable Long mentorId) {
+        List<Review> reviews = reviewRepository.findByMentorIdOrderByCreatedAtDesc(mentorId);
+        
+        List<ReviewResponseDto> response = reviews.stream().map(review -> {
+            ReviewResponseDto dto = new ReviewResponseDto();
+            dto.setId(review.getId());
+            dto.setMentorId(review.getMentorId());
+            dto.setStudentId(review.getStudentId());
+            dto.setSessionId(review.getSessionId());
+            dto.setRating(review.getRating());
+            dto.setComment(review.getComment());
+            dto.setCreatedAt(review.getCreatedAt());
+
+            try {
+                // Petición HTTP síncrona a user-service
+                String userServiceUrl = "http://localhost:8081/api/users/internal/" + review.getStudentId();
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("X-Service-Token", internalToken);
+                HttpEntity<String> entity = new HttpEntity<>(headers);
+                
+                ResponseEntity<UserDto> responseTemplate = restTemplate.exchange(userServiceUrl, HttpMethod.GET, entity, UserDto.class);
+                UserDto user = responseTemplate.getBody();
+                
+                if (user != null) {
+                    String userName = user.getName() != null ? user.getName() : user.getNombre();
+                    dto.setUserName(userName != null ? userName : "Usuario Desconocido");
+                } else {
+                    dto.setUserName("Usuario Desconocido");
+                }
+            } catch (Exception e) {
+                // Si user-service está apagado o falla, mostramos una alternativa amigable
+                System.err.println("Error al obtener usuario con ID " + review.getStudentId() + ": " + e.getMessage());
+                dto.setUserName("Usuario (No disponible)");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping
+    public ResponseEntity<Review> createReview(@RequestBody Review review) {
+        Review savedReview = reviewRepository.save(review);
+        return ResponseEntity.ok(savedReview);
+    }
+}

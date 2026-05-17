@@ -28,23 +28,16 @@ export interface MentorshipOffer {
   availableDates: string[];
 }
 
-// Mock data for reviews until the service is implemented
-const dummyReviews = [
-  {
-    id: 1,
-    userName: "Carlos M.",
-    rating: 5,
-    date: "Hace 2 días",
-    comment: "Excelente sesión. Me ayudó a resolver un problema con React Hooks que llevaba días sin poder solucionar. Súper claro en sus explicaciones.",
-  },
-  {
-    id: 2,
-    userName: "Laura P.",
-    rating: 5,
-    date: "Hace 1 semana",
-    comment: "Muy profesional y paciente. Me explicó conceptos de TypeScript de forma muy didáctica. Definitivamente volveré a agendar con ella.",
-  },
-];
+export interface Review {
+  id: number;
+  mentorId: number;
+  studentId: number;
+  sessionId?: number;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 export default function MentorProfile() {
   const navigate = useNavigate();
@@ -56,6 +49,7 @@ export default function MentorProfile() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<{date: string, time: string}[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -74,6 +68,12 @@ export default function MentorProfile() {
                 setBookedSlots(booked);
               })
               .catch(err => console.error("Error fetching sessions:", err));
+
+          // Consultamos las reseñas desde el feedback-service
+          fetch(`http://localhost:8084/api/reviews/mentor/${data.mentorId}`)
+            .then(res => res.json())
+            .then(fetchedReviews => setReviews(fetchedReviews))
+            .catch(err => console.error("Error fetching reviews:", err));
           }
         })
         .catch(err => console.error("Error fetching mentor profile:", err));
@@ -208,32 +208,36 @@ export default function MentorProfile() {
             <div className="bg-white rounded-lg border border-gray-200 p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Reseñas ({mentor.reviews})
+                  Reseñas ({reviews.length})
                 </h2>
                 <div className="flex items-center gap-2">
                   <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
                   <span className="text-2xl font-bold text-gray-900">
-                    {mentor.rating}
+                    {reviews.length > 0 ? (reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length).toFixed(1) : mentor.rating}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-6">
-                {/* Aquí iría un fetch a un futuro microservicio de reseñas */}
-                {dummyReviews.map((review) => (
+                {reviews.length === 0 ? (
+                  <p className="text-gray-500">Aún no hay reseñas para este mentor.</p>
+                ) : (
+                  reviews.map((review) => (
                   <div key={review.id} className="border-b border-gray-100 last:border-b-0 pb-6 last:pb-0">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
                           <span className="font-semibold text-indigo-600">
-                            {review.userName.charAt(0)}
+                            {review.userName ? review.userName.charAt(0).toUpperCase() : "U"}
                           </span>
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">
                             {review.userName}
                           </div>
-                          <div className="text-sm text-gray-500">{review.date}</div>
+                          <div className="text-sm text-gray-500">
+                            {new Intl.DateTimeFormat("es-ES", { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(review.createdAt))}
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-0.5">
@@ -251,10 +255,12 @@ export default function MentorProfile() {
                     </div>
                     <p className="text-gray-700">{review.comment}</p>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
+                
             </div>
           </div>
+        </div>
 
           {/* Sidebar - Booking */}
           <div className="lg:col-span-1">
