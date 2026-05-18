@@ -31,6 +31,7 @@ export interface MentorshipOffer {
 export interface Review {
   id: number;
   mentorId: number;
+  offerId?: number;
   studentId: number;
   sessionId?: number;
   userName: string;
@@ -42,7 +43,7 @@ export interface Review {
 export default function MentorProfile() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
 
   const [mentor, setMentor] = useState<MentorshipOffer | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -66,11 +67,15 @@ export default function MentorProfile() {
                   .filter((s: any) => s.status !== "cancelada")
                   .map((s: any) => ({ date: s.date, time: s.time }));
                 setBookedSlots(booked);
+
+                // Calcular las sesiones completadas reales
+                const completedCount = sessions.filter((s: any) => s.status === "completada").length;
+                setMentor(prev => prev ? { ...prev, sessionsCompleted: completedCount } : prev);
               })
               .catch(err => console.error("Error fetching sessions:", err));
 
-          // Consultamos las reseñas desde el feedback-service
-          fetch(`http://localhost:8084/api/reviews/mentor/${data.mentorId}`)
+          // Consultamos las reseñas específicas para esta OFERTA
+          fetch(`http://localhost:8084/api/reviews/offer/${id}`)
             .then(res => res.json())
             .then(fetchedReviews => setReviews(fetchedReviews))
             .catch(err => console.error("Error fetching reviews:", err));
@@ -132,8 +137,8 @@ export default function MentorProfile() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate("/buscar")}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -141,6 +146,23 @@ export default function MentorProfile() {
             <ArrowLeft className="w-5 h-5" />
             Volver a búsqueda
           </button>
+          
+          {isLoggedIn && (
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/student-schedule")}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                Mis Sesiones
+              </button>
+              <button
+                onClick={() => navigate("/perfil")}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                <span className="font-medium">Mi Perfil</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

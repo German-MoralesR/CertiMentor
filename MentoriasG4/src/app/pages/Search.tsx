@@ -73,8 +73,41 @@ export default function Search() {
       try {
         const response = await fetch("http://localhost:8082/api/mentorship-offers");
         if (response.ok) {
-          const data = await response.json();
-          setOffers(data);
+          const data: MentorshipOffer[] = await response.json();
+          
+          // Enriquecemos cada oferta con los datos calculados vivos de otros microservicios
+          const enrichedOffers = await Promise.all(
+            data.map(async (offer) => {
+              let realRating = 0;
+              let realReviewsCount = 0;
+              let realSessionsCount = 0;
+
+              try {
+                // Buscar reseñas específicas para esta oferta
+                const reviewsRes = await fetch(`http://localhost:8084/api/reviews/offer/${offer.id}`);
+                if (reviewsRes.ok) {
+                  const reviews = await reviewsRes.json();
+                  realReviewsCount = reviews.length;
+                  if (realReviewsCount > 0) {
+                    const totalStars = reviews.reduce((acc: any, rev: any) => acc + rev.rating, 0);
+                    realRating = Number((totalStars / realReviewsCount).toFixed(1));
+                  }
+                }
+
+                // Buscar sesiones completadas del mentor
+                const sessionsRes = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${offer.mentorId}`);
+                if (sessionsRes.ok) {
+                  const sessions = await sessionsRes.json();
+                  realSessionsCount = sessions.filter((s: any) => s.status === 'completada').length;
+                }
+              } catch (e) {
+                console.error(`Error al obtener estadísticas en vivo para la oferta ${offer.id}:`, e);
+              }
+
+              return { ...offer, rating: realRating, reviews: realReviewsCount, sessionsCompleted: realSessionsCount };
+            })
+          );
+          setOffers(enrichedOffers);
         } else {
           console.error("Error fetching offers:", await response.text());
         }
@@ -136,12 +169,29 @@ export default function Search() {
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/login")}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              Mi cuenta
-            </button>
+            {isLoggedIn ? (
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate("/student-schedule")}
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Mis Sesiones
+                </button>
+                <button
+                  onClick={() => navigate("/perfil")}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  <span className="font-medium">Mi Perfil</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                Mi cuenta
+              </button>
+            )}
           </div>
         </div>
       </header>

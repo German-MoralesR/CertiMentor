@@ -1,28 +1,118 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, User, Mail, Shield, BookOpen, Star, Clock, Edit3, Settings } from "lucide-react";
+import { ArrowLeft, User, Mail, Shield, BookOpen, Star, Clock, Edit3, Settings, LogOut, Key } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function UserProfile() {
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
 
   // Si el usuario no está logueado o es admin, lo redirigimos al inicio
-  if (!isLoggedIn || user?.role === "admin") {
+  if (!isLoggedIn || (user && user.role === "admin")) {
     navigate("/");
     return null;
   }
 
-  // Por ahora usamos datos simulados para ilustrar lo que el usuario vería.
-  const mentorStats = {
-    sessionsGiven: 42,
-    rating: 4.8,
-    hoursMentored: 21,
+  // Estados para estadísticas reales del mentor
+  const [mentorStats, setMentorStats] = useState({
+    sessionsGiven: 0,
+    rating: 0,
+    hoursMentored: 0,
+  });
+
+  // Estados para estadísticas reales del estudiante
+  const [studentStats, setStudentStats] = useState({
+    sessionsTaken: 0,
+    mentorsContacted: 0,
+    hoursLearned: 0,
+  });
+
+  // Estados para el cambio de contraseña
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
+  const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
+
+  // Efecto para obtener las estadísticas reales
+  useEffect(() => {
+    if (user?.id) {
+      if (user.role === "estudiante") {
+        fetch(`http://localhost:8083/api/mentorship-sessions/student/${user.id}`)
+          .then(res => res.json())
+          .then(sessions => {
+            const completed = sessions.filter((s: any) => s.status === "completada");
+            const uniqueMentors = new Set(completed.map((s: any) => s.mentorId)).size;
+            const totalMinutes = completed.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
+            setStudentStats({
+              sessionsTaken: completed.length,
+              mentorsContacted: uniqueMentors,
+              hoursLearned: Number((totalMinutes / 60).toFixed(1)),
+            });
+          })
+          .catch(err => console.error("Error fetching student stats", err));
+      } else if (user.role === "mentor") {
+        // Estadísticas de sesiones para el mentor
+        fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${user.id}`)
+          .then(res => res.json())
+          .then(sessions => {
+            const completed = sessions.filter((s: any) => s.status === "completada");
+            const totalMinutes = completed.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
+            setMentorStats(prev => ({ ...prev, sessionsGiven: completed.length, hoursMentored: Number((totalMinutes / 60).toFixed(1)) }));
+          });
+        
+        // Promedio de calificación para el mentor
+        fetch(`http://localhost:8084/api/reviews/mentor/${user.id}`)
+          .then(res => res.json())
+          .then(reviews => {
+            if (reviews.length > 0) {
+              const totalStars = reviews.reduce((acc: number, r: any) => acc + r.rating, 0);
+              setMentorStats(prev => ({ ...prev, rating: Number((totalStars / reviews.length).toFixed(1)) }));
+            }
+          });
+      }
+    }
+  }, [user]);
+
+  const handleLogout = () => {
+    if (logout) {
+      logout();
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    navigate("/");
   };
 
-  const studentStats = {
-    sessionsTaken: 5,
-    mentorsContacted: 3,
-    hoursLearned: 2.5,
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwords.new !== passwords.confirm) {
+      setPasswordMessage({ type: "error", text: "Las contraseñas nuevas no coinciden." });
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/password`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.new
+        }),
+      });
+      if (response.ok) {
+        setPasswordMessage({ type: "success", text: "¡Contraseña actualizada exitosamente!" });
+        setPasswords({ current: "", new: "", confirm: "" });
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordMessage({ type: "", text: "" });
+        }, 2000);
+      } else {
+        setPasswordMessage({ type: "error", text: "La contraseña actual es incorrecta." });
+      }
+    } catch (err) {
+      setPasswordMessage({ type: "error", text: "Error de conexión con el servidor." });
+    }
   };
 
   return (
@@ -136,9 +226,12 @@ export default function UserProfile() {
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
               <div>
                 <p className="font-medium text-gray-900">Contraseña</p>
-                <p className="text-sm text-gray-500">Último cambio hace 3 meses</p>
+                <p className="text-sm text-gray-500">Asegura tu cuenta con una buena contraseña</p>
               </div>
-              <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+              <button 
+                onClick={() => setShowPasswordModal(true)}
+                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              >
                 Cambiar
               </button>
             </div>
@@ -156,15 +249,76 @@ export default function UserProfile() {
             </div>
 
             {/* Zona de peligro */}
-            <div className="pt-4">
-              <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                Desactivar mi cuenta
+            <div className="pt-4 flex flex-col items-start gap-4">
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
               </button>
             </div>
           </div>
         </div>
 
       </div>
+
+      {/* Modal para Cambio de Contraseña */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Key className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Cambiar Contraseña</h3>
+            </div>
+
+            {passwordMessage.text && (
+              <div className={`p-3 rounded-lg mb-4 text-sm font-medium ${passwordMessage.type === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {passwordMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
+                <input 
+                  type="password" 
+                  value={passwords.current}
+                  onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  value={passwords.new}
+                  onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  value={passwords.confirm}
+                  onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required 
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Actualizar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

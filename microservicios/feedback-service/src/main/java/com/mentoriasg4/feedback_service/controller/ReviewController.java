@@ -33,11 +33,21 @@ public class ReviewController {
     @GetMapping("/mentor/{mentorId}")
     public ResponseEntity<List<ReviewResponseDto>> getReviewsByMentor(@PathVariable Long mentorId) {
         List<Review> reviews = reviewRepository.findByMentorIdOrderByCreatedAtDesc(mentorId);
-        
+        return ResponseEntity.ok(mapReviewsToDto(reviews));
+    }
+
+    @GetMapping("/offer/{offerId}")
+    public ResponseEntity<List<ReviewResponseDto>> getReviewsByOffer(@PathVariable Long offerId) {
+        List<Review> reviews = reviewRepository.findByOfferIdOrderByCreatedAtDesc(offerId);
+        return ResponseEntity.ok(mapReviewsToDto(reviews));
+    }
+
+    private List<ReviewResponseDto> mapReviewsToDto(List<Review> reviews) {
         List<ReviewResponseDto> response = reviews.stream().map(review -> {
             ReviewResponseDto dto = new ReviewResponseDto();
             dto.setId(review.getId());
             dto.setMentorId(review.getMentorId());
+            dto.setOfferId(review.getOfferId());
             dto.setStudentId(review.getStudentId());
             dto.setSessionId(review.getSessionId());
             dto.setRating(review.getRating());
@@ -69,8 +79,7 @@ public class ReviewController {
 
             return dto;
         }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+        return response;
     }
 
     @PostMapping

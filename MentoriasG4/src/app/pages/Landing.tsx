@@ -87,16 +87,6 @@ export default function Landing() {
                       <User className="w-4 h-4" />
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate("/");
-                    }}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Cerrar sesión"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
                 </div>
               </>
             ) : (

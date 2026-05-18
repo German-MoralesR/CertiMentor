@@ -20,6 +20,7 @@ public class DataInitializer implements CommandLineRunner {
         if (repository.count() == 0) {
             Review review1 = new Review();
             review1.setMentorId(2L);
+            review1.setOfferId(1L); // Se asociará a tu oferta de prueba #1
             review1.setStudentId(3L);
             review1.setRating(5);
             review1.setComment("Excelente sesión. Me ayudó a resolver un problema con React Hooks que llevaba días sin poder solucionar. Súper claro en sus explicaciones.");
@@ -27,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
 
             Review review2 = new Review();
             review2.setMentorId(2L);
+            review2.setOfferId(1L);
             review2.setStudentId(3L);
             review2.setRating(5);
             review2.setComment("Muy profesional y paciente. Me explicó conceptos de TypeScript de forma muy didáctica. Definitivamente volveré a agendar con ella.");

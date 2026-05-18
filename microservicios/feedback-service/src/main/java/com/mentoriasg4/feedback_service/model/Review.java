@@ -16,6 +16,8 @@ public class Review {
 
     private Long mentorId;
     
+    private Long offerId; // Para separar reseñas por cada oferta de mentoría
+
     private Long studentId;
     
     // Opcional por ahora: ID de la sesión específica que se está reseñando

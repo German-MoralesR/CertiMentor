@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class ReviewResponseDto {
     private Long id;
     private Long mentorId;
+    private Long offerId;
     private Long studentId;
     private Long sessionId;
     private String userName; // Este es el campo inyectado externamente
