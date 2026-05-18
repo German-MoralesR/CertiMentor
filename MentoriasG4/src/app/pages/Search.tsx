@@ -10,7 +10,7 @@ export interface MentorshipOffer {
   mentorName: string;
   title: string;
   image: string;
-  price: string;
+  price: number;
   sessionsCompleted: number;
   rating: number;
   reviews: number;
@@ -349,7 +349,7 @@ export default function Search() {
                     {mentor.sessionsCompleted} sesiones
                   </div>
                   <div className="font-semibold text-indigo-600">
-                    {mentor.price}
+                    {mentor.price === 0 ? "Gratis" : `$${mentor.price.toLocaleString("es-CL")} / sesión`}
                   </div>
                 </div>
               </div>

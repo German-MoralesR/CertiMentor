@@ -17,7 +17,7 @@ export interface MentorshipOffer {
   mentorName: string;
   title: string;
   image: string;
-  price: string;
+  price: number;
   sessionsCompleted: number;
   rating: number;
   reviews: number;
@@ -109,7 +109,7 @@ export default function MentorProfile() {
       date: selectedDate,
       time: selectedSlot,
       duration: 30,
-      price: parseFloat(mentor.price.replace('$', '').replace('/sesión', '')) || 0,
+      price: mentor.price,
       status: "pendiente",
     };
 
@@ -298,7 +298,7 @@ export default function MentorProfile() {
                   <div className="text-sm font-medium text-gray-900">
                     Duración: 15-30 min
                   </div>
-                  <div className="text-xs text-gray-600">Sesión gratuita</div>
+                  <div className="text-xs text-gray-600">{mentor.price === 0 ? "Sesión gratuita" : `$${mentor.price.toLocaleString("es-CL")} por sesión`}</div>
                 </div>
               </div>
 

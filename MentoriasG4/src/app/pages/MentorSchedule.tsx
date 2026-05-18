@@ -58,7 +58,6 @@ export default function MentorSchedule() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed">(
     "upcoming"
   );
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 3, 14)); // 14 de abril
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null);
   const [platformLinkInput, setPlatformLinkInput] = useState("");
 
@@ -87,41 +86,15 @@ export default function MentorSchedule() {
 
   const upcomingMentorships = mentorships.filter(
     (m) => (m.status === "pendiente" || m.status === "aprobada" || m.status === "cancelada") && m.date >= todayStr
-  );
+  ).sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
 
   const completedMentorships = mentorships.filter((m) => m.status === "completada" || (m.status === "cancelada" && m.date < todayStr));
-
-  const todayMentorships = mentorships.filter(
-    (m) =>
-      (m.status === "pendiente" || m.status === "aprobada" || m.status === "cancelada") &&
-      m.date === selectedDate.toISOString().split("T")[0]
-  );
 
   const totalEarnings = useMemo(() => {
     return completedMentorships
       .filter((m) => m.status === "completada")
       .reduce((sum, m) => sum + m.price, 0);
   }, [completedMentorships]);
-
-  const handlePrevDay = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 1);
-    setSelectedDate(newDate);
-  };
-
-  const handleNextDay = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 1);
-    setSelectedDate(newDate);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(date);
-  };
 
   const mentorshipDetail = showDetailModal
     ? mentorships.find((m) => m.id === showDetailModal)
@@ -238,150 +211,14 @@ export default function MentorSchedule() {
         {/* Próximas Mentorías Tab */}
         {activeTab === "upcoming" && (
           <div>
-            {/* Selector de Fecha */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Selecciona una fecha
-                </h2>
-                <button
-                  onClick={() => setSelectedDate(new Date(2026, 3, 14))}
-                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-                >
-                  Hoy
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={handlePrevDay}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-
-                <div className="text-center flex-1 mx-4">
-                  <div className="text-2xl font-bold text-gray-900 capitalize">
-                    {formatDate(selectedDate)}
-                  </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {todayMentorships.length} sesión
-                    {todayMentorships.length !== 1 ? "es" : ""} hoy
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleNextDay}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Mentorías de Hoy */}
-            {todayMentorships.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Hoy - {todayMentorships.length} sesión
-                    {todayMentorships.length !== 1 ? "es" : ""}
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  {todayMentorships.map((mentorship) => (
-                    <div
-                      key={mentorship.id}
-                      className="bg-white border-2 border-indigo-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex gap-4 flex-1">
-                          <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
-                            <ImageWithFallback
-                              src={mentorship.studentImage || ""}
-                              alt={mentorship.studentName}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-lg text-gray-900">
-                              {mentorship.topic}
-                            </h4>
-                            <p className="text-gray-600 mb-2">
-                              {mentorship.studentName}
-                            </p>
-                            <div className="flex gap-4 flex-wrap">
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <Clock className="w-4 h-4" />
-                                <span className="text-sm">
-                                  {mentorship.time} (GMT-5)
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <AlertCircle className="w-4 h-4" />
-                                <span className="text-sm">
-                                  {mentorship.duration} minutos
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-2xl font-bold text-indigo-600 mb-2">
-                            ${mentorship.price}
-                          </div>
-                        <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                          mentorship.status === "cancelada"
-                            ? "bg-red-100 text-red-700"
-                            : mentorship.status === "aprobada"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}>
-                          {mentorship.status === "cancelada" ? "Cancelada" : mentorship.status === "aprobada" ? "Aprobada" : "Por aprobar"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setShowDetailModal(mentorship.id);
-                            setPlatformLinkInput(mentorship.platformLink || "");
-                          }}
-                          className="w-full px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm flex items-center justify-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver Detalles
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Próximas Mentorías */}
-            {upcomingMentorships.length > todayMentorships.length && (
+            {upcomingMentorships.length > 0 ? (
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Próximas
-                  </h3>
-                </div>
-
                 <div className="space-y-4">
                   {upcomingMentorships
-                    .filter(
-                      (m) =>
-                        m.date !== selectedDate.toISOString().split("T")[0]
-                    )
                     .map((mentorship) => (
                       <div
                         key={mentorship.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                        className={`bg-white border-2 rounded-lg p-6 hover:shadow-lg transition-shadow ${mentorship.date === todayStr ? 'border-indigo-300' : 'border-gray-200'}`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex gap-4 flex-1">
@@ -394,6 +231,7 @@ export default function MentorSchedule() {
                             </div>
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900">
+                                {mentorship.date === todayStr && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full mr-2">HOY</span>}
                                 {mentorship.topic}
                               </h4>
                               <p className="text-gray-600 text-sm mb-2">
@@ -403,20 +241,27 @@ export default function MentorSchedule() {
                                 <div className="flex items-center gap-1 text-gray-600">
                                   <Calendar className="w-4 h-4" />
                                   {new Intl.DateTimeFormat("es-ES", {
+                                    weekday: "short",
                                     day: "numeric",
                                     month: "short",
                                   }).format(new Date(mentorship.date))}
                                 </div>
                                 <div className="flex items-center gap-1 text-gray-600">
                                   <Clock className="w-4 h-4" />
-                                  {mentorship.time}
+                                  {mentorship.time} (GMT-5)
+                                </div>
+                                <div className="flex items-center gap-1 text-gray-600">
+                                  <AlertCircle className="w-4 h-4" />
+                                  <span className="text-sm">
+                                    {mentorship.duration} minutos
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="text-xl font-bold text-indigo-600">
-                              ${mentorship.price}
+                              {mentorship.price === 0 ? "Gratis" : `$${mentorship.price.toLocaleString("es-CL")}`}
                             </div>
                             <div className="mt-2">
                               <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
@@ -431,13 +276,24 @@ export default function MentorSchedule() {
                             </div>
                           </div>
                         </div>
+
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                          <button
+                            onClick={() => {
+                              setShowDetailModal(mentorship.id);
+                              setPlatformLinkInput(mentorship.platformLink || "");
+                            }}
+                            className="w-full px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver Detalles
+                          </button>
+                        </div>
                       </div>
                     ))}
                 </div>
               </div>
-            )}
-
-            {upcomingMentorships.length === 0 && (
+            ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -470,7 +326,7 @@ export default function MentorSchedule() {
                 </div>
                 <div className="text-3xl font-bold text-green-600 flex items-center gap-2">
                   <DollarSign className="w-7 h-7" />
-                  {totalEarnings.toFixed(2)}
+                  {totalEarnings.toLocaleString("es-CL")}
                 </div>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -480,7 +336,7 @@ export default function MentorSchedule() {
                 <div className="text-3xl font-bold text-indigo-600">
                   $
                   {completedMentorships.length > 0
-                    ? (totalEarnings / completedMentorships.length).toFixed(2)
+                    ? Math.round(totalEarnings / completedMentorships.length).toLocaleString("es-CL")
                     : "0.00"}
                 </div>
               </div>
@@ -550,8 +406,8 @@ export default function MentorSchedule() {
                           {mentorship.duration} min
                         </td>
                         <td className={`px-6 py-4 text-sm font-semibold ${mentorship.status === 'completada' ? 'text-green-600' : 'text-gray-400 line-through'}`}>
-                          ${mentorship.price.toFixed(2)}
                         </td>
+                          {mentorship.price === 0 ? "Gratis" : `$${mentorship.price.toLocaleString("es-CL")}`}
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                             mentorship.status === "completada" 
@@ -658,7 +514,7 @@ export default function MentorSchedule() {
                     Precio
                   </label>
                   <p className="text-gray-900 font-semibold">
-                    ${mentorshipDetail.price.toFixed(2)}
+                    {mentorshipDetail.price === 0 ? "Gratis" : `$${mentorshipDetail.price.toLocaleString("es-CL")}`}
                   </p>
                 </div>
                 <div>

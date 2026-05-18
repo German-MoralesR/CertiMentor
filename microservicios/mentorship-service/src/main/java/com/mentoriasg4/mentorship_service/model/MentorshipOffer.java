@@ -21,7 +21,7 @@ public class MentorshipOffer {
     
     @Column(length = 1000)
     private String image;
-    private String price;
+    private Integer price; // Guardado como valor numérico CLP (ej: 15000) o 0 para gratis
 
     private Integer sessionsCompleted = 0;
     private Double rating = 5.0;
@@ -85,11 +85,11 @@ public class MentorshipOffer {
         this.image = image;
     }
 
-    public String getPrice() {
+    public Integer getPrice() {
         return price;
     }
 
-    public void setPrice(String price) {
+    public void setPrice(Integer price) {
         this.price = price;
     }
 

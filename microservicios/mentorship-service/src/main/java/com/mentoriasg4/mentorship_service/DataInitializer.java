@@ -22,7 +22,7 @@ public class DataInitializer implements CommandLineRunner {
             offer1.setMentorName("Mentor Experto");
             offer1.setTitle("Senior Full Stack Developer");
             offer1.setImage("https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=300&h=300");
-            offer1.setPrice("$15/sesión");
+            offer1.setPrice(15000);
             offer1.setSessionsCompleted(12);
             offer1.setRating(4.9);
             offer1.setReviews(8);
@@ -37,7 +37,7 @@ public class DataInitializer implements CommandLineRunner {
             offer2.setMentorName("Mentor Experto");
             offer2.setTitle("Especialista en Frontend (UX/UI)");
             offer2.setImage("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300&h=300");
-            offer2.setPrice("Gratis");
+            offer2.setPrice(0);
             offer2.setSessionsCompleted(45);
             offer2.setRating(5.0);
             offer2.setReviews(32);

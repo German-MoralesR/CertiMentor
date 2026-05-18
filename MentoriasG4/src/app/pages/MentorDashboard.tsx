@@ -10,7 +10,7 @@ export interface MentorshipOffer {
   mentorName: string;
   title: string;
   image: string;
-  price: string;
+  price: number;
   sessionsCompleted: number;
   rating: number;
   reviews: number;
@@ -25,7 +25,8 @@ interface FormData {
   title: string;
   image: string;
   skills: string;
-  price: string;
+  price: string; // Se guarda como string en el estado para facilitar el input
+  isGratis: boolean; // Estado para manejar el botón y deshabilitar el input
   timeStart: string;
   timeEnd: string;
   availableDates: string[];
@@ -62,7 +63,8 @@ export default function MentorDashboard() {
     title: "",
     image: "",
     skills: "",
-    price: "Gratis",
+    price: "",
+    isGratis: true,
     timeStart: "09:00",
     timeEnd: "18:00",
     availableDates: [],
@@ -73,13 +75,27 @@ export default function MentorDashboard() {
   const [validationError, setValidationError] = useState("");
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  const [realCompletedSessions, setRealCompletedSessions] = useState(0);
 
   // Usamos el ID 2 para que coincida con los datos insertados en el DataInitializer del backend
   const currentMentorId = 2;
 
   useEffect(() => {
     fetchOffers();
+    fetchSessions();
   }, []);
+
+  const fetchSessions = async () => {
+    try {
+      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${currentMentorId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRealCompletedSessions(data.filter((s: any) => s.status === 'completada').length);
+      }
+    } catch (error) {
+      console.error("Error fetching mentor sessions:", error);
+    }
+  };
 
   const fetchOffers = async () => {
     try {
@@ -119,6 +135,10 @@ export default function MentorDashboard() {
       setValidationError("Al menos una habilidad es requerida");
       return false;
     }
+    if (!formData.isGratis && (!formData.price || parseInt(formData.price) <= 0)) {
+      setValidationError("Ingresa un precio válido o marca la opción 'Gratis'");
+      return false;
+    }
     return true;
   };
 
@@ -135,7 +155,7 @@ export default function MentorDashboard() {
       title: formData.title,
       image: formData.image,
       skills: formData.skills.split(",").map((s) => s.trim()).filter((s) => s),
-      price: formData.price,
+      price: formData.isGratis ? 0 : parseInt(formData.price) || 0,
       timeStart: formData.timeStart,
       timeEnd: formData.timeEnd,
       availableDates: formData.availableDates,
@@ -173,7 +193,8 @@ export default function MentorDashboard() {
       title: offer.title,
       image: offer.image,
       skills: offer.skills.join(", "),
-      price: offer.price,
+      price: offer.price === 0 ? "" : offer.price.toString(),
+      isGratis: offer.price === 0,
       timeStart: offer.timeStart || "09:00",
       timeEnd: offer.timeEnd || "18:00",
       availableDates: offer.availableDates || [],
@@ -204,7 +225,8 @@ export default function MentorDashboard() {
       title: "",
       image: "",
       skills: "",
-      price: "Gratis",
+      price: "",
+      isGratis: true,
       timeStart: "09:00",
       timeEnd: "18:00",
       availableDates: [],
@@ -274,6 +296,37 @@ export default function MentorDashboard() {
     });
   };
 
+  // Agrupar fechas consecutivas visualmente
+  const groupConsecutiveDates = (dates: string[]) => {
+    if (!dates.length) return [];
+    const sorted = [...dates].sort();
+    const groups: string[][] = [];
+    let currentGroup = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i++) {
+      const prevDate = new Date(sorted[i - 1] + "T00:00");
+      const currDate = new Date(sorted[i] + "T00:00");
+      const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        currentGroup.push(sorted[i]);
+      } else {
+        groups.push(currentGroup);
+        currentGroup = [sorted[i]];
+      }
+    }
+    groups.push(currentGroup);
+    return groups;
+  };
+
+  const removeDateGroup = (datesToRemove: string[]) => {
+    setFormData({
+      ...formData,
+      availableDates: formData.availableDates.filter((d) => !datesToRemove.includes(d)),
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -330,7 +383,7 @@ export default function MentorDashboard() {
               Sesiones Completadas
             </div>
             <div className="text-3xl font-bold text-gray-900">
-              {mentorOffers.reduce((sum, o) => sum + o.sessionsCompleted, 0)}
+              {realCompletedSessions}
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -446,7 +499,7 @@ export default function MentorDashboard() {
                         {offer.sessionsCompleted} sesiones
                       </div>
                       <div className="font-semibold text-indigo-600">
-                        {offer.price}
+                        {offer.price === 0 ? "Gratis" : `$${offer.price.toLocaleString("es-CL")} / sesión`}
                       </div>
                     </div>
 
@@ -607,14 +660,28 @@ export default function MentorDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Precio de la Mentoría
                     </label>
-                    <input
-                      type="text"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      placeholder="Ej: Gratis, $15/sesión"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                        <input
+                          type="text"
+                          name="price"
+                          value={formData.price}
+                          onChange={(e) => setFormData(prev => ({...prev, price: e.target.value.replace(/[^0-9]/g, "")}))}
+                          disabled={formData.isGratis}
+                          placeholder="Ej: 15000"
+                          className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${formData.isGratis ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : "border-gray-300 focus:border-transparent"}`}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({...prev, isGratis: !prev.isGratis, price: prev.isGratis ? prev.price : ""}))}
+                        className={`px-4 py-3 rounded-lg font-medium transition-colors border ${formData.isGratis ? "bg-green-100 text-green-700 border-green-300" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300"}`}
+                      >
+                        Gratis
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Precio en CLP. Ej: 15000 (se mostrará como $15.000 / sesión)</p>
                   </div>
                 </div>
 
@@ -691,19 +758,21 @@ export default function MentorDashboard() {
                         ✅ Fechas seleccionadas ({formData.availableDates.length}):
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {formData.availableDates.map((date) => (
+                        {groupConsecutiveDates(formData.availableDates).map((group, index) => (
                           <div
-                            key={date}
+                            key={index}
                             className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full hover:bg-green-150 transition-colors"
                           >
                             <span className="text-sm font-semibold text-green-700">
-                              📅 {formatDate(date)}
+                              📅 {group.length === 1 
+                                ? formatDate(group[0]) 
+                                : `${formatDate(group[0])} - ${formatDate(group[group.length - 1])}`}
                             </span>
                             <button
                               type="button"
-                              onClick={() => removeDate(date)}
+                              onClick={() => removeDateGroup(group)}
                               className="text-green-600 hover:text-green-800 transition-colors"
-                              title="Eliminar fecha"
+                              title="Eliminar fechas"
                             >
                               <X className="w-4 h-4" />
                             </button>

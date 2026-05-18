@@ -508,7 +508,7 @@ export default function Admin() {
                   Ingresos Totales
                 </div>
                 <div className="text-3xl font-bold text-gray-900">
-                  ${totalIngresos.toFixed(2)}
+                  ${totalIngresos.toLocaleString("es-CL")}
                 </div>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -516,7 +516,7 @@ export default function Admin() {
                   Comisiones (20%)
                 </div>
                 <div className="text-3xl font-bold text-red-600">
-                  ${totalComisiones.toFixed(2)}
+                  ${totalComisiones.toLocaleString("es-CL")}
                 </div>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -524,7 +524,7 @@ export default function Admin() {
                   Ganancias Mentores
                 </div>
                 <div className="text-3xl font-bold text-green-600">
-                  ${totalGananiasmentores.toFixed(2)}
+                  ${totalGananiasmentores.toLocaleString("es-CL")}
                 </div>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -588,13 +588,13 @@ export default function Admin() {
                           {transaction.studentName}
                         </td>
                         <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                          ${transaction.amount.toFixed(2)}
+                          ${transaction.amount.toLocaleString("es-CL")}
                         </td>
                         <td className="px-6 py-4 text-sm text-red-600 font-medium">
-                          -${transaction.commission.toFixed(2)}
+                          -${transaction.commission.toLocaleString("es-CL")}
                         </td>
                         <td className="px-6 py-4 text-sm font-semibold text-green-600">
-                          ${transaction.mentorEarnings.toFixed(2)}
+                          ${transaction.mentorEarnings.toLocaleString("es-CL")}
                         </td>
                         <td className="px-6 py-4 text-sm">
                           <span

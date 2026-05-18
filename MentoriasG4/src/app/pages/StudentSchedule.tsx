@@ -204,7 +204,7 @@ export default function StudentSchedule() {
                       {/* Precio */}
                       <div className="text-right flex-shrink-0">
                         <div className="text-2xl font-bold text-indigo-600 mb-2">
-                          ${session.price}
+                          {session.price === 0 ? "Gratis" : `$${session.price.toLocaleString("es-CL")}`}
                         </div>
                         <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                           session.status === "cancelada"
@@ -439,7 +439,7 @@ export default function StudentSchedule() {
                     Precio
                   </label>
                   <p className="text-gray-900 font-semibold">
-                    ${sessionDetail.price.toFixed(2)}
+                    {sessionDetail.price === 0 ? "Gratis" : `$${sessionDetail.price.toLocaleString("es-CL")}`}
                   </p>
                 </div>
                 <div>
