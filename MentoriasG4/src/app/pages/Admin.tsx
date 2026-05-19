@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
@@ -23,6 +23,8 @@ export interface User {
   role: "estudiante" | "mentor" | "admin";
   status: "activo" | "inactivo";
   createdAt: string;
+  mentorRequest?: boolean;
+  profileImage?: string;
 }
 
 export interface Mentoría {
@@ -83,6 +85,30 @@ export default function Admin() {
       </div>
     );
   }
+  
+  // Obtenemos todos los usuarios (para la prueba simulamos el fetch)
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("http://localhost:8081/api/users");
+        if (res.ok) {
+          const data = await res.json();
+          setUsers(data.map((u: any) => ({
+            id: u.id_usuario,
+            name: u.nombre,
+            email: u.email,
+            role: u.rol.nombre.toLowerCase(),
+            status: u.status || "activo", 
+            createdAt: new Date().toISOString(), 
+            mentorRequest: u.mentorRequest,
+            profileImage: u.profileImage
+          })));
+        }
+      } catch (err) {}
+    };
+    fetchUsers();
+  }, []);
+
   const [users, setUsers] = useState<User[]>([]);
   const [mentorías, setMentorías] = useState<Mentoría[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -106,36 +132,74 @@ export default function Admin() {
     setShowEditModal(true);
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     if (editingUser) {
-      setUsers(
-        users.map((user) =>
-          user.id === editingUser.id
-            ? { ...user, name: editingUser.name, email: editingUser.email }
-            : user
-        )
-      );
-      setShowEditModal(false);
-      setEditingUser(null);
+      try {
+        const res = await fetch(`http://localhost:8081/api/users/${editingUser.id}/admin-edit`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: editingUser.name, email: editingUser.email }),
+        });
+        if (res.ok) {
+          setUsers(
+            users.map((user) =>
+              user.id === editingUser.id
+                ? { ...user, name: editingUser.name, email: editingUser.email }
+                : user
+            )
+          );
+          setShowEditModal(false);
+          setEditingUser(null);
+        }
+      } catch (err) { console.error(err) }
     }
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers(users.filter((user) => user.id !== id));
-    setDeleteConfirm(null);
+  const handleDeleteUser = async (id: number) => {
+    try {
+      const res = await fetch(`http://localhost:8081/api/users/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setUsers(users.map((user) => user.id === id ? { ...user, status: "inactivo" } : user));
+        setDeleteConfirm(null);
+      }
+    } catch (err) { console.error(err) }
   };
 
-  const toggleUserStatus = (id: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              status: user.status === "activo" ? "inactivo" : "activo",
-            }
-          : user
-      )
-    );
+  const toggleUserStatus = async (id: number) => {
+    try {
+      const res = await fetch(`http://localhost:8081/api/users/${id}/status`, { method: "PUT" });
+      if (res.ok) {
+        setUsers(
+          users.map((user) =>
+            user.id === id
+              ? {
+                  ...user,
+                  status: user.status === "activo" ? "inactivo" : "activo",
+                }
+              : user
+          )
+        );
+      }
+    } catch (err) { console.error(err) }
+  };
+
+  const handleApproveMentor = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8081/api/users/${id}/approve-mentor`, {
+        method: "PUT"
+      });
+      if (response.ok) {
+        setUsers(
+          users.map((user) =>
+            user.id === id
+              ? { ...user, role: "mentor", mentorRequest: false }
+              : user
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error aprobando mentor");
+    }
   };
 
   // Funciones para mentorías
@@ -303,7 +367,12 @@ export default function Admin() {
                       className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        {user.name}
+                        <div className="flex items-center gap-2">
+                          {user.mentorRequest && (
+                            <span className="w-2 h-2 bg-yellow-400 rounded-full" title="Solicita ser mentor"></span>
+                          )}
+                          {user.name}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {user.email}
@@ -346,6 +415,15 @@ export default function Admin() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex gap-2">
+                          {user.mentorRequest && (
+                            <button
+                              onClick={() => handleApproveMentor(user.id)}
+                              className="px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
+                              title="Aprobar solicitud de mentor"
+                            >
+                              Aprobar
+                            </button>
+                          )}
                           <button
                             onClick={() => handleEditUser(user)}
                             className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"

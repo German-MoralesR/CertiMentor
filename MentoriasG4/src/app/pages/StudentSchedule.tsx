@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Video,
   X,
+  Star,
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
@@ -16,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 export interface ScheduledMentorship {
   id: number;
   mentorId: number;
+  offerId: number;
   studentId: number;
   mentorName: string;
   studentName: string;
@@ -32,10 +34,12 @@ export interface ScheduledMentorship {
 export default function StudentSchedule() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
-  const [activeTab, setActiveTab] = useState<"upcoming" | "completed">(
-    "upcoming"
-  );
+  const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "canceled">("upcoming");
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null);
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   // Proteger acceso solo para estudiantes
   if (!isLoggedIn || user?.role !== "estudiante") {
@@ -82,14 +86,64 @@ export default function StudentSchedule() {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const upcomingSessions = studentSessions.filter(
-    (s) => (s.status === "pendiente" || s.status === "aprobada" || s.status === "cancelada") && s.date >= todayStr
+    (s) => s.status === "pendiente" || s.status === "aprobada"
   );
 
-  const completedSessions = studentSessions.filter((s) => s.status === "completada" || (s.status === "cancelada" && s.date < todayStr));
+  const completedSessions = studentSessions.filter((s) => s.status === "completada");
+
+  const canceledSessions = studentSessions.filter((s) => s.status === "cancelada");
 
   const sessionDetail = showDetailModal
     ? studentSessions.find((s) => s.id === showDetailModal)
     : null;
+
+  const handleOpenModal = async (session: ScheduledMentorship | null) => {
+    setShowDetailModal(session ? session.id : null);
+    setReviewSubmitted(false);
+    setRating(5);
+    setComment("");
+    
+    if (session && currentStudentId) {
+      try {
+        const res = await fetch(`http://localhost:8084/api/reviews/exists?offerId=${session.offerId}&studentId=${currentStudentId}`);
+        if (res.ok) {
+          const exists = await res.json();
+          setReviewSubmitted(exists);
+        }
+      } catch (error) { console.error("Error verifying review:", error) }
+    }
+  };
+
+  const handleCompleteSession = async () => {
+    if (!sessionDetail) return;
+    try {
+      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: "completada", platformLink: sessionDetail.platformLink }),
+      });
+      if (response.ok) {
+        setStudentSessions(studentSessions.map(s => s.id === sessionDetail.id ? { ...s, status: "completada" } : s));
+      }
+    } catch (error) {
+      console.error("Error completing session:", error);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!sessionDetail || !currentStudentId) return;
+    try {
+      const reviewPayload = { mentorId: sessionDetail.mentorId, offerId: sessionDetail.offerId, studentId: currentStudentId, rating, comment };
+      const response = await fetch("http://localhost:8084/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reviewPayload)
+      });
+      if (response.ok) setReviewSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting review:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,6 +195,17 @@ export default function StudentSchedule() {
           >
             <CheckCircle2 className="w-5 h-5" />
             Completadas ({completedSessions.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("canceled")}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "canceled"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <X className="w-5 h-5" />
+            Canceladas ({canceledSessions.length})
           </button>
         </div>
 
@@ -221,7 +286,7 @@ export default function StudentSchedule() {
                     {/* Botones */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowDetailModal(session.id)}
+                        onClick={() => handleOpenModal(session)}
                         className="flex-1 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm"
                       >
                         Ver Detalles
@@ -303,7 +368,7 @@ export default function StudentSchedule() {
                       <tr
                         key={session.id}
                         className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => setShowDetailModal(session.id)}
+                        onClick={() => handleOpenModal(session)}
                       >
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="flex items-center gap-2">
@@ -334,12 +399,8 @@ export default function StudentSchedule() {
                           {session.duration} min
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            session.status === "completada" 
-                              ? "bg-blue-50 text-blue-700" 
-                              : "bg-red-50 text-red-700"
-                          }`}>
-                            {session.status === "completada" ? "✓ Completada" : "✕ Cancelada"}
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
+                            ✓ Completada
                           </span>
                         </td>
                       </tr>
@@ -355,6 +416,73 @@ export default function StudentSchedule() {
                 </h3>
                 <p className="text-gray-600">
                   Las sesiones completadas aparecerán aquí
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sesiones Canceladas */}
+        {activeTab === "canceled" && (
+          <div>
+            {canceledSessions.length > 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Mentor</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tema</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Hora</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Duración</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {canceledSessions.map((session) => (
+                      <tr
+                        key={session.id}
+                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => handleOpenModal(session)}
+                      >
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                              <ImageWithFallback
+                                src={session.studentImage || ""}
+                                alt={session.mentorName}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <span className="text-gray-500 line-through">{session.mentorName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400 line-through">
+                          {session.topic}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">
+                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(session.date))}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">{session.time}</td>
+                        <td className="px-6 py-4 text-sm text-gray-400">{session.duration} min</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-red-50 text-red-700">
+                            ✕ Cancelada
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No hay sesiones canceladas
+                </h3>
+                <p className="text-gray-600">
+                  Tu historial de cancelaciones aparecerá aquí
                 </p>
               </div>
             )}
@@ -458,33 +586,65 @@ export default function StudentSchedule() {
                 </div>
               </div>
 
+              {/* Reseña (solo si está completada y aún no ha sido reseñada) */}
+              {sessionDetail.status === "completada" && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    ¿Qué tal fue la mentoría?
+                  </h3>
+                  {reviewSubmitted ? (
+                    <div className="bg-green-50 text-green-700 p-4 rounded-lg flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="w-5 h-5" />
+                      ¡Gracias por tu reseña!
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button key={star} onClick={() => setRating(star)}>
+                            <Star className={`w-8 h-8 ${star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Escribe un comentario sobre la sesión..." className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" rows={3} />
+                      <button onClick={handleSubmitReview} disabled={!comment.trim()} className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 transition-colors font-medium">
+                        Enviar Reseña
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Recordatorio */}
-              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              {sessionDetail.status !== "completada" && sessionDetail.status !== "cancelada" && (
+                <div className="mb-6 mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
                   💡 Asegúrate de tener tu cámara y micrófono listos 10 minutos
                   antes de la sesión. Recibirás un enlace para entrar a la
                   videollamada.
                 </p>
               </div>
+              )}
             </div>
 
             <div className="flex gap-3 p-6 border-t border-gray-200">
               <button
-                onClick={() => setShowDetailModal(null)}
+                onClick={() => handleOpenModal(null)}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
               >
                 Cerrar
               </button>
               {sessionDetail.status === "aprobada" && sessionDetail.platformLink && (
-                <a
-                  href={sessionDetail.platformLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center"
-                >
-                  <Video className="w-4 h-4" />
-                  Entrar a Sesión
-                </a>
+                <>
+                  <a href={sessionDetail.platformLink} target="_blank" rel="noopener noreferrer" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center">
+                    <Video className="w-4 h-4" />
+                    Entrar
+                  </a>
+                  <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Finalizar Sesión
+                  </button>
+                </>
               )}
               {sessionDetail.status === "pendiente" && (
                 <button disabled className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed">

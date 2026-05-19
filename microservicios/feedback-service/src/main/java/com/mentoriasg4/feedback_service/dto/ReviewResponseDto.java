@@ -9,7 +9,6 @@ public class ReviewResponseDto {
     private Long mentorId;
     private Long offerId;
     private Long studentId;
-    private Long sessionId;
     private String userName; // Este es el campo inyectado externamente
     private int rating;
     private String comment;

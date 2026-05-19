@@ -77,8 +77,6 @@ export default function Landing() {
                         : "🔒 Admin"}
                     </div>
                   </div>
-                  {/* Botón de Perfil: Se oculta para el administrador */}
-                  {user?.role !== "admin" && (
                     <button
                       onClick={() => navigate("/perfil")}
                       className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -86,7 +84,6 @@ export default function Landing() {
                     >
                       <User className="w-4 h-4" />
                     </button>
-                  )}
                 </div>
               </>
             ) : (

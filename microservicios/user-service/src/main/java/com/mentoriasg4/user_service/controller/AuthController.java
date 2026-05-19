@@ -49,6 +49,11 @@ public class AuthController {
         }
 
         final Usuario usuario = usuarioRepository.findByEmail(loginDto.getEmail()).orElseThrow();
+        
+        if ("inactivo".equalsIgnoreCase(usuario.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Tu cuenta ha sido desactivada por un administrador."));
+        }
+        
         final String token = jwtUtil.generateToken(usuario);
 
         return ResponseEntity.ok(Map.of(
@@ -56,14 +61,24 @@ public class AuthController {
                 "id", usuario.getId_usuario(),
                 "name", usuario.getNombre(),
                 "email", usuario.getEmail(),
-                "role", usuario.getRol().getNombre().toLowerCase() // Pasamos a minúsculas ("estudiante", "mentor", "admin") para que coincida con React
+                "role", usuario.getRol().getNombre().toLowerCase(),
+                "profileImage", usuario.getProfileImage() != null ? usuario.getProfileImage() : "",
+                "mentorRequest", usuario.getMentorRequest()
         ));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterDto registerDto) {
+    public ResponseEntity<?> register(@RequestBody Map<String, Object> registerData) {
+        String email = (String) registerData.get("email");
+        String nombre = (String) registerData.get("nombre");
+        String passwordStr = (String) registerData.get("password");
+        Boolean mentorRequest = false;
+        if (registerData.containsKey("mentorRequest")) {
+            mentorRequest = (Boolean) registerData.get("mentorRequest");
+        }
+
         // 1. Verificar si el email ya existe
-        if (usuarioRepository.findByEmail(registerDto.getEmail()).isPresent()) {
+        if (usuarioRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El correo electrónico ya está registrado."));
         }
 
@@ -73,10 +88,11 @@ public class AuthController {
 
         // 3. Crear el nuevo usuario
         Usuario nuevoUsuario = new Usuario();
-        nuevoUsuario.setNombre(registerDto.getNombre());
-        nuevoUsuario.setEmail(registerDto.getEmail());
-        nuevoUsuario.setPassword(passwordEncoder.encode(registerDto.getPassword())); // ¡Contraseña encriptada!
+        nuevoUsuario.setNombre(nombre);
+        nuevoUsuario.setEmail(email);
+        nuevoUsuario.setPassword(passwordEncoder.encode(passwordStr)); // ¡Contraseña encriptada!
         nuevoUsuario.setRol(rolEstudiante);
+        nuevoUsuario.setMentorRequest(mentorRequest);
 
         // 4. Guardar el usuario en la base de datos
         Usuario usuarioGuardado = usuarioRepository.save(nuevoUsuario);

@@ -13,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [mentorRequest, setMentorRequest] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -35,15 +36,27 @@ export default function Login() {
         return;
       }
       const fullName = `${firstName} ${lastName}`.trim();
-      const success = await register(fullName, email, password);
-      if (success) {
+      
+      // Hacemos el fetch directamente para poder enviar el nuevo campo 'mentorRequest'
+      try {
+        const response = await fetch("http://localhost:8081/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: fullName, email, password, mentorRequest }),
+        });
+        
+        if (response.ok) {
         setMode("login");
         setSuccessMsg("¡Cuenta creada exitosamente! Por favor, inicia sesión con tus credenciales.");
         setPassword(""); // Limpiar contraseñas por seguridad
         setConfirmPassword("");
         setAcceptTerms(false);
-      } else {
-        setError("Error al registrarse. El correo podría ya estar en uso.");
+          setMentorRequest(false);
+        } else {
+          setError("Error al registrarse. El correo podría ya estar en uso.");
+        }
+      } catch (err) {
+        setError("Error de conexión con el servidor.");
       }
       return;
     }
@@ -57,7 +70,7 @@ export default function Login() {
     if (success) {
       navigate("/");
     } else {
-      setError("Email o contraseña incorrectos");
+      setError("Credenciales incorrectas o tu cuenta ha sido desactivada.");
     }
   };
 
@@ -245,6 +258,24 @@ export default function Login() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
+              
+              <div className="flex items-start mt-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                <div className="flex items-center h-5">
+                  <input
+                    id="mentorReq"
+                    type="checkbox"
+                    checked={mentorRequest}
+                    onChange={(e) => setMentorRequest(e.target.checked)}
+                    className="w-4 h-4 border border-gray-300 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </div>
+                <div className="ml-2 text-sm">
+                  <label htmlFor="mentorReq" className="font-medium text-indigo-900 cursor-pointer">
+                    Quiero ser Mentor (Mi cuenta requerirá aprobación de un administrador)
+                  </label>
+                </div>
+              </div>
+
               <div className="flex items-start mt-4">
                 <div className="flex items-center h-5">
                   <input

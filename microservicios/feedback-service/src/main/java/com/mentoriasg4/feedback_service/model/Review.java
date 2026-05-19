@@ -20,9 +20,6 @@ public class Review {
 
     private Long studentId;
     
-    // Opcional por ahora: ID de la sesión específica que se está reseñando
-    private Long sessionId;
-    
     private int rating; // Ej: 1 a 5
     
     @Column(length = 1000)

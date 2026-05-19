@@ -32,6 +32,13 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 1000)
+    private String profileImage;
+
+    private Boolean mentorRequest = false;
+
+    private String status = "activo"; // "activo" o "inactivo"
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_rol", referencedColumnName = "id_rol")
     private Rol rol;

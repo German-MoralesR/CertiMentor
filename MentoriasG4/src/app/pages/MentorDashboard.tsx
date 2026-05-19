@@ -19,6 +19,7 @@ export interface MentorshipOffer {
   availability: string;
   skills: string[];
   availableDates: string[];
+  status?: string;
 }
 
 interface FormData {
@@ -76,14 +77,16 @@ export default function MentorDashboard() {
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
   const [realCompletedSessions, setRealCompletedSessions] = useState(0);
+  const [confirmDeleteCheckbox, setConfirmDeleteCheckbox] = useState(false);
 
-  // Usamos el ID 2 para que coincida con los datos insertados en el DataInitializer del backend
-  const currentMentorId = 2;
+  const currentMentorId = user?.id;
 
   useEffect(() => {
-    fetchOffers();
-    fetchSessions();
-  }, []);
+    if (currentMentorId) {
+      fetchOffers();
+      fetchSessions();
+    }
+  }, [currentMentorId]);
 
   const fetchSessions = async () => {
     try {
@@ -98,11 +101,34 @@ export default function MentorDashboard() {
   };
 
   const fetchOffers = async () => {
+    if (!currentMentorId) return;
     try {
       const response = await fetch(`http://localhost:8082/api/mentorship-offers/mentor/${currentMentorId}`);
       if (response.ok) {
         const data = await response.json();
-        setOffers(data);
+        // Filtramos las ofertas eliminadas lógicamente
+        const activeOffers = data.filter((o: any) => o.status !== "eliminada");
+        
+        // Enriquecemos con los datos reales
+        const enrichedOffers = await Promise.all(
+          activeOffers.map(async (offer: any) => {
+            let realRating = offer.rating;
+            let realReviewsCount = offer.reviews;
+            try {
+              const reviewsRes = await fetch(`http://localhost:8084/api/reviews/offer/${offer.id}`);
+              if (reviewsRes.ok) {
+                const reviews = await reviewsRes.json();
+                realReviewsCount = reviews.length;
+                if (realReviewsCount > 0) {
+                  const totalStars = reviews.reduce((acc: any, rev: any) => acc + rev.rating, 0);
+                  realRating = Number((totalStars / realReviewsCount).toFixed(1));
+                }
+              }
+            } catch (e) {}
+            return { ...offer, rating: realRating, reviews: realReviewsCount };
+          })
+        );
+        setOffers(enrichedOffers);
       } else {
         console.error("Error al cargar ofertas:", await response.text());
       }
@@ -110,7 +136,6 @@ export default function MentorDashboard() {
       console.error("Error fetching offers:", error);
     }
   };
-  const mentorOffers = offers.filter((o) => o.mentorId === currentMentorId);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -216,6 +241,7 @@ export default function MentorDashboard() {
       console.error("Error deleting offer:", error);
     }
     setDeleteConfirm(null);
+    setConfirmDeleteCheckbox(false);
   };
 
   const handleCancel = () => {
@@ -374,9 +400,7 @@ export default function MentorDashboard() {
             <div className="text-gray-600 text-sm font-medium mb-2">
               Total de Avisos
             </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {mentorOffers.length}
-            </div>
+            <div className="text-3xl font-bold text-gray-900">{offers.length}</div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="text-gray-600 text-sm font-medium mb-2">
@@ -391,12 +415,12 @@ export default function MentorDashboard() {
               Calificación Promedio
             </div>
             <div className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              {mentorOffers.length > 0
-                ? (mentorOffers.reduce((sum, o) => sum + o.rating, 0) / mentorOffers.length).toFixed(
+              {offers.length > 0
+                ? (offers.reduce((sum, o) => sum + o.rating, 0) / offers.length).toFixed(
                     1
                   )
                 : "N/A"}
-              {mentorOffers.length > 0 && (
+              {offers.length > 0 && (
                 <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
               )}
             </div>
@@ -409,7 +433,7 @@ export default function MentorDashboard() {
             Mis Avisos de Mentoría
           </h2>
 
-          {mentorOffers.length === 0 ? (
+          {offers.length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
               <div className="text-gray-400 text-6xl mb-4">📋</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -428,7 +452,7 @@ export default function MentorDashboard() {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mentorOffers.map((offer) => (
+              {offers.map((offer) => (
                 <div
                   key={offer.id}
                   className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
@@ -543,17 +567,35 @@ export default function MentorDashboard() {
                 ¿Está seguro de que desea eliminar este aviso de mentoría? Esta acción
                 no se puede deshacer.
               </p>
+              
+              <div className="flex items-start mt-4 bg-red-50 p-3 rounded-lg border border-red-100">
+                <div className="flex items-center h-5">
+                  <input
+                    id="confirmDel"
+                    type="checkbox"
+                    checked={confirmDeleteCheckbox}
+                    onChange={(e) => setConfirmDeleteCheckbox(e.target.checked)}
+                    className="w-4 h-4 border border-red-300 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                  />
+                </div>
+                <div className="ml-2 text-sm">
+                  <label htmlFor="confirmDel" className="font-medium text-red-900 cursor-pointer">
+                    Confirmo que deseo eliminar este aviso permanentemente.
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 p-6 border-t border-gray-200">
               <button
-                onClick={() => setDeleteConfirm(null)}
+                onClick={() => { setDeleteConfirm(null); setConfirmDeleteCheckbox(false); }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                disabled={!confirmDeleteCheckbox}
+                className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors ${confirmDeleteCheckbox ? "bg-red-600 hover:bg-red-700" : "bg-gray-300 cursor-not-allowed"}`}
               >
                 Eliminar
               </button>

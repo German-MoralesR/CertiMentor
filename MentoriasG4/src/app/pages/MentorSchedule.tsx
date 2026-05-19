@@ -55,22 +55,20 @@ export default function MentorSchedule() {
       </div>
     );
   }
-  const [activeTab, setActiveTab] = useState<"upcoming" | "completed">(
-    "upcoming"
-  );
+  const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "canceled">("upcoming");
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null);
   const [platformLinkInput, setPlatformLinkInput] = useState("");
 
-  // Simular mentor actual (en una app real, vendría del contexto de autenticación)
-  const currentMentorId = 2;
+  const currentMentorId = user?.id;
 
   const [mentorships, setMentorships] = useState<ScheduledMentorship[]>([]);
 
   useEffect(() => {
-    fetchMentorSessions();
-  }, []);
+    if (currentMentorId) fetchMentorSessions();
+  }, [currentMentorId]);
 
   const fetchMentorSessions = async () => {
+    if (!currentMentorId) return;
     try {
       const response = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${currentMentorId}`);
       if (response.ok) {
@@ -85,10 +83,12 @@ export default function MentorSchedule() {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const upcomingMentorships = mentorships.filter(
-    (m) => (m.status === "pendiente" || m.status === "aprobada" || m.status === "cancelada") && m.date >= todayStr
+    (m) => m.status === "pendiente" || m.status === "aprobada"
   ).sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
 
-  const completedMentorships = mentorships.filter((m) => m.status === "completada" || (m.status === "cancelada" && m.date < todayStr));
+  const completedMentorships = mentorships.filter((m) => m.status === "completada");
+
+  const canceledMentorships = mentorships.filter((m) => m.status === "cancelada");
 
   const totalEarnings = useMemo(() => {
     return completedMentorships
@@ -205,6 +205,17 @@ export default function MentorSchedule() {
           >
             <CheckCircle2 className="w-5 h-5" />
             Completadas ({completedMentorships.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("canceled")}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "canceled"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <X className="w-5 h-5" />
+            Canceladas ({canceledMentorships.length})
           </button>
         </div>
 
@@ -405,16 +416,12 @@ export default function MentorSchedule() {
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {mentorship.duration} min
                         </td>
-                        <td className={`px-6 py-4 text-sm font-semibold ${mentorship.status === 'completada' ? 'text-green-600' : 'text-gray-400 line-through'}`}>
-                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-green-600">
                           {mentorship.price === 0 ? "Gratis" : `$${mentorship.price.toLocaleString("es-CL")}`}
+                        </td>
                         <td className="px-6 py-4 text-sm">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            mentorship.status === "completada" 
-                              ? "bg-blue-50 text-blue-700" 
-                              : "bg-red-50 text-red-700"
-                          }`}>
-                            {mentorship.status === "completada" ? "✓ Completada" : "✕ Cancelada"}
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
+                            ✓ Completada
                           </span>
                         </td>
                       </tr>
@@ -430,6 +437,73 @@ export default function MentorSchedule() {
                 </h3>
                 <p className="text-gray-600">
                   Las sesiones completadas aparecerán aquí
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Canceladas Tab */}
+        {activeTab === "canceled" && (
+          <div>
+            {canceledMentorships.length > 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Estudiante</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tema</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Hora</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Duración</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {canceledMentorships.map((mentorship) => (
+                      <tr
+                        key={mentorship.id}
+                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => setShowDetailModal(mentorship.id)}
+                      >
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                              <ImageWithFallback
+                                src={mentorship.studentImage || ""}
+                                alt={mentorship.studentName}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <span className="text-gray-500 line-through">{mentorship.studentName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400 line-through">
+                          {mentorship.topic}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">
+                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(mentorship.date))}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">{mentorship.time}</td>
+                        <td className="px-6 py-4 text-sm text-gray-400">{mentorship.duration} min</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-red-50 text-red-700">
+                            ✕ Cancelada
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No tienes mentorías canceladas
+                </h3>
+                <p className="text-gray-600">
+                  El historial de sesiones canceladas aparecerá aquí
                 </p>
               </div>
             )}

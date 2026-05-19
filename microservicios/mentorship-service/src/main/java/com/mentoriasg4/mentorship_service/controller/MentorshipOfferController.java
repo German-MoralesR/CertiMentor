@@ -49,7 +49,11 @@ public class MentorshipOfferController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.deleteOffer(id);
+        MentorshipOffer offer = service.getOfferById(id).orElse(null);
+        if (offer != null) {
+            offer.setStatus("eliminada");
+            service.updateOffer(id, offer);
+        }
         return ResponseEntity.noContent().build();
     }
 }

@@ -11,6 +11,7 @@ public class MentorshipSession {
     private Long id;
 
     private Long mentorId;
+    private Long offerId;
     private Long studentId;
     private String mentorName;
     private String studentName;
@@ -43,6 +44,14 @@ public class MentorshipSession {
 
     public void setMentorId(Long mentorId) {
         this.mentorId = mentorId;
+    }
+
+    public Long getOfferId() {
+        return offerId;
+    }
+
+    public void setOfferId(Long offerId) {
+        this.offerId = offerId;
     }
 
     public Long getStudentId() {

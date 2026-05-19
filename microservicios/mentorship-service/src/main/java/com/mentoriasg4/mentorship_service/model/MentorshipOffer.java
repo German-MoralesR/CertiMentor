@@ -26,6 +26,8 @@ public class MentorshipOffer {
     private Integer sessionsCompleted = 0;
     private Double rating = 5.0;
     private Integer reviews = 0;
+    
+    private String status = "activa"; // Para el borrado lógico
 
     private String timeStart;
     private String timeEnd;
@@ -91,6 +93,14 @@ public class MentorshipOffer {
 
     public void setPrice(Integer price) {
         this.price = price;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Integer getSessionsCompleted() {

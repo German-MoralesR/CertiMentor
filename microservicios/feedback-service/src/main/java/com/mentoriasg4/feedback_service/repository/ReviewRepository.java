@@ -10,4 +10,5 @@ import java.util.List;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findByMentorIdOrderByCreatedAtDesc(Long mentorId);
     List<Review> findByOfferIdOrderByCreatedAtDesc(Long offerId);
+    boolean existsByOfferIdAndStudentId(Long offerId, Long studentId);
 }

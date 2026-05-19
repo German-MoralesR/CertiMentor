@@ -99,12 +99,15 @@ export default function MentorProfile() {
       return;
     }
 
+    const studentImage = (user as { profileImage?: string }).profileImage || `https://ui-avatars.com/api/?name=${user.name.replace(" ", "+")}`;
+
     const bookingPayload = {
       mentorId: mentor.mentorId,
+      offerId: mentor.id,
       studentId: user.id,
       mentorName: mentor.mentorName,
       studentName: user.name,
-      studentImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150&h=150",
+      studentImage,
       topic: `Mentoría sobre ${mentor.skills[0] || 'desarrollo'}`,
       date: selectedDate,
       time: selectedSlot,
@@ -191,10 +194,10 @@ export default function MentorProfile() {
                       <div className="flex items-center gap-1">
                         <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                         <span className="font-semibold text-gray-900">
-                          {mentor.rating}
+                          {reviews.length > 0 ? (reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length).toFixed(1) : mentor.rating}
                         </span>
                         <span className="text-gray-600">
-                          ({mentor.reviews} reseñas)
+                          ({reviews.length} reseñas)
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">

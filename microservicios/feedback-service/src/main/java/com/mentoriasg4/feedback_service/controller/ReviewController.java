@@ -42,6 +42,11 @@ public class ReviewController {
         return ResponseEntity.ok(mapReviewsToDto(reviews));
     }
 
+    @GetMapping("/exists")
+    public ResponseEntity<Boolean> checkReviewExists(@RequestParam Long offerId, @RequestParam Long studentId) {
+        return ResponseEntity.ok(reviewRepository.existsByOfferIdAndStudentId(offerId, studentId));
+    }
+
     private List<ReviewResponseDto> mapReviewsToDto(List<Review> reviews) {
         List<ReviewResponseDto> response = reviews.stream().map(review -> {
             ReviewResponseDto dto = new ReviewResponseDto();
@@ -49,7 +54,6 @@ public class ReviewController {
             dto.setMentorId(review.getMentorId());
             dto.setOfferId(review.getOfferId());
             dto.setStudentId(review.getStudentId());
-            dto.setSessionId(review.getSessionId());
             dto.setRating(review.getRating());
             dto.setComment(review.getComment());
             dto.setCreatedAt(review.getCreatedAt());

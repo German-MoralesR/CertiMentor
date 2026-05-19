@@ -7,8 +7,8 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { user, isLoggedIn, logout } = useAuth();
 
-  // Si el usuario no está logueado o es admin, lo redirigimos al inicio
-  if (!isLoggedIn || (user && user.role === "admin")) {
+  // Si el usuario no está logueado lo redirigimos al inicio
+  if (!isLoggedIn) {
     navigate("/");
     return null;
   }
@@ -32,9 +32,20 @@ export default function UserProfile() {
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
 
+  // Estados para la edición de perfil
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileData, setProfileData] = useState({ name: user?.name || "", profileImage: "" });
+  const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
+
   // Efecto para obtener las estadísticas reales
   useEffect(() => {
     if (user?.id) {
+      // Cargamos la imagen de perfil actual desde localStorage si existe
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      if (storedUser.profileImage) {
+        setProfileData(prev => ({ ...prev, profileImage: storedUser.profileImage }));
+      }
+
       if (user.role === "estudiante") {
         fetch(`http://localhost:8083/api/mentorship-sessions/student/${user.id}`)
           .then(res => res.json())
@@ -115,6 +126,44 @@ export default function UserProfile() {
     }
   };
 
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/profile`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          profileImage: profileData.profileImage
+        }),
+      });
+      
+      if (response.ok) {
+        setProfileMessage({ type: "success", text: "¡Perfil actualizado!" });
+        
+        // Actualizamos el localStorage para que persista
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        storedUser.name = profileData.name;
+        storedUser.profileImage = profileData.profileImage;
+        localStorage.setItem("user", JSON.stringify(storedUser));
+
+        setTimeout(() => {
+          setShowProfileModal(false);
+          window.location.reload(); // Recargamos para que el AuthContext tome los nuevos valores globales
+        }, 1500);
+      } else {
+        setProfileMessage({ type: "error", text: "Error al actualizar el perfil." });
+      }
+    } catch (err) {
+      setProfileMessage({ type: "error", text: "Error de conexión con el servidor." });
+    }
+  };
+
+  const currentUserData = JSON.parse(localStorage.getItem("user") || "{}");
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Encabezado simple para volver atrás */}
@@ -139,9 +188,13 @@ export default function UserProfile() {
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Avatar placeholder */}
               <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-3xl font-bold text-indigo-600">
-                  {user?.name?.charAt(0).toUpperCase() || "U"}
-                </span>
+                {currentUserData.profileImage ? (
+                  <img src={currentUserData.profileImage} alt="Perfil" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <span className="text-3xl font-bold text-indigo-600">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                )}
               </div>
               
               {/* Datos del usuario */}
@@ -158,7 +211,10 @@ export default function UserProfile() {
                   </span>
                 </div>
                 
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm">
+                <button 
+                  onClick={() => setShowProfileModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm"
+                >
                   <Edit3 className="w-4 h-4" />
                   Editar Información
                 </button>
@@ -172,7 +228,15 @@ export default function UserProfile() {
           Resumen de tu actividad
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {user?.role === "mentor" ? (
+        {user?.role === "admin" ? (
+          <div className="bg-white p-6 rounded-lg border border-gray-200 text-center col-span-1 sm:col-span-3">
+            <Shield className="w-8 h-8 text-indigo-600 mx-auto mb-3" />
+            <div className="text-2xl font-bold text-gray-900">Administrador del Sistema</div>
+            <div className="text-sm text-gray-600 mt-2">
+              Tienes acceso completo al panel de control para gestionar usuarios, mentorías y transacciones.
+            </div>
+          </div>
+        ) : user?.role === "mentor" ? (
             // ESTADÍSTICAS PARA MENTORES
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200 text-center">
@@ -314,6 +378,55 @@ export default function UserProfile() {
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Actualizar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Editar Perfil */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Editar Información</h3>
+            </div>
+
+            {profileMessage.text && (
+              <div className={`p-3 rounded-lg mb-4 text-sm font-medium ${profileMessage.type === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {profileMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">URL Foto de Perfil</label>
+                <input 
+                  type="url" 
+                  value={profileData.profileImage}
+                  onChange={(e) => setProfileData({...profileData, profileImage: e.target.value})}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Ingresa el link directo a una imagen.</p>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowProfileModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Guardar Cambios</button>
               </div>
             </form>
           </div>
