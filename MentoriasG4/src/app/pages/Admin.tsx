@@ -13,6 +13,7 @@ import {
   BookOpen,
   Info,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -24,6 +25,8 @@ export interface User {
   status: "activo" | "inactivo";
   createdAt: string;
   mentorRequest?: boolean;
+  certificationCode?: string;
+  institution?: string;
   profileImage?: string;
 }
 
@@ -34,7 +37,7 @@ export interface Mentoría {
   mentorId: number;
   studentName: string;
   studentId: number;
-  status: "activa" | "completada" | "deshabilitada";
+  status: string;
   createdAt: string;
   sessionsCompleted: number;
 }
@@ -55,10 +58,19 @@ export interface Transaction {
   paymentMethod: "tarjeta" | "transferencia" | "billetera";
 }
 
-interface EditingUser {
+export interface RequestData {
   id: number;
-  name: string;
-  email: string;
+  type: string;
+  status: string;
+  certificationCode?: string;
+  institution?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export default function Admin() {
@@ -94,77 +106,80 @@ export default function Admin() {
         if (res.ok) {
           const data = await res.json();
           setUsers(data.map((u: any) => ({
-            id: u.id_usuario,
-            name: u.nombre,
+            id: u.id,
+            name: u.name,
             email: u.email,
-            role: u.rol.nombre.toLowerCase(),
+            role: u.role.name.toLowerCase(),
             status: u.status || "activo", 
             createdAt: new Date().toISOString(), 
             mentorRequest: u.mentorRequest,
+            certificationCode: u.certificationCode,
+            institution: u.institution,
             profileImage: u.profileImage
           })));
         }
       } catch (err) {}
     };
     fetchUsers();
+
+    const fetchMentorias = async () => {
+      try {
+        const res = await fetch("http://localhost:8083/api/mentorship-sessions");
+        if (res.ok) {
+          const data = await res.json();
+          setMentorías(data.map((m: any) => ({
+            id: m.id,
+            topic: m.topic || "Sin tema",
+            mentorName: m.mentorName || "Mentor Desconocido",
+            mentorId: m.mentorId,
+            studentName: m.studentName || "Estudiante Desconocido",
+            studentId: m.studentId,
+            status: m.status?.toLowerCase() || "pendiente",
+            createdAt: m.date ? new Date(m.date).toISOString() : new Date().toISOString(),
+            sessionsCompleted: m.status === "completada" ? 1 : 0
+          })));
+        }
+      } catch (err) { console.error("Error fetching mentorías:", err) }
+    };
+    fetchMentorias();
+
+    const fetchRequests = async () => {
+      try {
+        const res = await fetch("http://localhost:8081/api/solicitudes");
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(data.map((req: any) => {
+            // Manejar fechas que vienen como array desde Spring Boot LocalDateTime
+            let parsedDate = req.createdAt;
+            if (Array.isArray(parsedDate)) {
+               parsedDate = new Date(parsedDate[0], parsedDate[1] - 1, parsedDate[2], parsedDate[3] || 0, parsedDate[4] || 0, parsedDate[5] || 0).toISOString();
+            }
+            return { ...req, createdAt: parsedDate || new Date().toISOString() };
+          }));
+        }
+      } catch (err) {}
+    };
+    fetchRequests();
   }, []);
 
   const [users, setUsers] = useState<User[]>([]);
   const [mentorías, setMentorías] = useState<Mentoría[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [activeTab, setActiveTab] = useState<"users" | "mentorías" | "transacciones">("users");
-  const [editingUser, setEditingUser] = useState<EditingUser | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [requests, setRequests] = useState<RequestData[]>([]);
+  const [activeTab, setActiveTab] = useState<"users" | "mentorías" | "transacciones" | "solicitudes">("users");
+  const [mentoriaFilter, setMentoriaFilter] = useState("todas");
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: "user" | "mentoría";
+    type: "mentoría";
     id: number;
   } | null>(null);
+  const [selectedMentorRequest, setSelectedMentorRequest] = useState<User | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMentoría, setSelectedMentoría] = useState<Mentoría | null>(null);
+  const [selectedRequestView, setSelectedRequestView] = useState<RequestData | null>(null);
 
   // Funciones para usuarios
-  const handleEditUser = (user: User) => {
-    setEditingUser({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    });
-    setShowEditModal(true);
-  };
-
-  const handleSaveUser = async () => {
-    if (editingUser) {
-      try {
-        const res = await fetch(`http://localhost:8081/api/users/${editingUser.id}/admin-edit`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: editingUser.name, email: editingUser.email }),
-        });
-        if (res.ok) {
-          setUsers(
-            users.map((user) =>
-              user.id === editingUser.id
-                ? { ...user, name: editingUser.name, email: editingUser.email }
-                : user
-            )
-          );
-          setShowEditModal(false);
-          setEditingUser(null);
-        }
-      } catch (err) { console.error(err) }
-    }
-  };
-
-  const handleDeleteUser = async (id: number) => {
-    try {
-      const res = await fetch(`http://localhost:8081/api/users/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setUsers(users.map((user) => user.id === id ? { ...user, status: "inactivo" } : user));
-        setDeleteConfirm(null);
-      }
-    } catch (err) { console.error(err) }
-  };
-
   const toggleUserStatus = async (id: number) => {
     try {
       const res = await fetch(`http://localhost:8081/api/users/${id}/status`, { method: "PUT" });
@@ -196,9 +211,35 @@ export default function Admin() {
               : user
           )
         );
+        setSelectedMentorRequest(null);
       }
     } catch (err) {
       console.error("Error aprobando mentor");
+    }
+  };
+
+  const handleRejectMentor = async (id: number) => {
+    if (!rejectReason.trim()) return;
+    try {
+      const response = await fetch(`http://localhost:8081/api/users/${id}/reject-mentor`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: rejectReason })
+      });
+      if (response.ok) {
+        setUsers(
+          users.map((user) =>
+            user.id === id
+              ? { ...user, mentorRequest: false, certificationCode: undefined, institution: undefined }
+              : user
+          )
+        );
+        setSelectedMentorRequest(null);
+        setIsRejecting(false);
+        setRejectReason("");
+      }
+    } catch (err) {
+      console.error("Error rechazando mentor");
     }
   };
 
@@ -206,7 +247,7 @@ export default function Admin() {
   const handleDisableMentoría = (id: number) => {
     setMentorías(
       mentorías.map((m) =>
-        m.id === id ? { ...m, status: "deshabilitada" } : m
+        m.id === id ? { ...m, status: "cancelada" } : m
       )
     );
   };
@@ -223,18 +264,29 @@ export default function Admin() {
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredMentorías = mentorías.filter(
-    (m) =>
+  const filteredMentorías = mentorías.filter((m) => {
+    const matchesSearch =
       m.mentorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.topic.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      m.topic.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesFilter = mentoriaFilter === "todas" || m.status === mentoriaFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
 
   const filteredTransactions = transactions.filter(
     (t) =>
       t.mentorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.mentoriaTopic.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredRequests = requests.filter(
+    (r) =>
+      r.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Estadísticas de transacciones
@@ -316,6 +368,20 @@ export default function Admin() {
             <CreditCard className="w-5 h-5" />
             Transacciones ({transactions.length})
           </button>
+          <button
+            onClick={() => {
+              setActiveTab("solicitudes");
+              setSearchQuery("");
+            }}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "solicitudes"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <FileText className="w-5 h-5" />
+            Historial Solicitudes ({requests.length})
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -325,13 +391,34 @@ export default function Admin() {
             placeholder={
               activeTab === "users"
                 ? "Buscar usuario por nombre o email..."
-                : "Buscar mentoría..."
+                : activeTab === "mentorías"
+                ? "Buscar mentoría..."
+                : activeTab === "solicitudes"
+                ? "Buscar en solicitudes..."
+                : "Buscar transacción..."
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
+
+        {/* Filtro de Mentorías */}
+        {activeTab === "mentorías" && (
+          <div className="mb-6">
+            <select
+              value={mentoriaFilter}
+              onChange={(e) => setMentoriaFilter(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px]"
+            >
+              <option value="todas">Todas las mentorías</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="aceptada">Aceptadas</option>
+              <option value="completada">Completadas</option>
+              <option value="cancelada">Canceladas</option>
+            </select>
+          </div>
+        )}
 
         {/* Usuarios Tab */}
         {activeTab === "users" && (
@@ -417,29 +504,14 @@ export default function Admin() {
                         <div className="flex gap-2">
                           {user.mentorRequest && (
                             <button
-                              onClick={() => handleApproveMentor(user.id)}
-                              className="px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
-                              title="Aprobar solicitud de mentor"
+                              onClick={() => setSelectedMentorRequest(user)}
+                              className="px-3 py-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                              title="Revisar solicitud de mentor"
                             >
-                              Aprobar
+                              <Eye className="w-4 h-4" />
+                              Revisar solicitud
                             </button>
                           )}
-                          <button
-                            onClick={() => handleEditUser(user)}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Editar usuario"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setDeleteConfirm({ type: "user", id: user.id })
-                            }
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar usuario"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -514,18 +586,22 @@ export default function Admin() {
                       <td className="px-6 py-4 text-sm">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            mentoría.status === "activa"
+                            mentoría.status === "aceptada" || mentoría.status === "activa"
                               ? "bg-green-50 text-green-700"
                               : mentoría.status === "completada"
                               ? "bg-blue-50 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
+                              : mentoría.status === "pendiente"
+                              ? "bg-yellow-50 text-yellow-700"
+                              : "bg-red-50 text-red-700"
                           }`}
                         >
-                          {mentoría.status === "activa"
-                            ? "🟢 Activa"
+                          {mentoría.status === "aceptada" || mentoría.status === "activa"
+                            ? "🟢 Aceptada"
                             : mentoría.status === "completada"
                             ? "✓ Completada"
-                            : "🔴 Deshabilitada"}
+                            : mentoría.status === "pendiente"
+                            ? "⏳ Pendiente"
+                            : "🔴 Cancelada"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
@@ -537,11 +613,11 @@ export default function Admin() {
                           >
                             <Info className="w-4 h-4" />
                           </button>
-                          {mentoría.status === "activa" && (
+                          {(mentoría.status === "activa" || mentoría.status === "aceptada" || mentoría.status === "pendiente") && (
                             <button
                               onClick={() => handleDisableMentoría(mentoría.id)}
                               className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                              title="Deshabilitar mentoría"
+                              title="Cancelar mentoría"
                             >
                               <EyeOff className="w-4 h-4" />
                             </button>
@@ -729,20 +805,90 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* Solicitudes Tab (Historial) */}
+        {activeTab === "solicitudes" && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Usuario</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tipo</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Estado</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRequests.length > 0 ? (
+                  // Mostramos las solicitudes ordenadas de la más nueva a la más antigua
+                  filteredRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((req) => (
+                    <tr
+                      key={req.id}
+                      className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div>
+                          <p className="font-medium">{req.user?.name || "Usuario Desconocido"}</p>
+                          <p className="text-gray-500 text-xs">{req.user?.email || "Sin email"}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 font-medium">
+                        {req.type}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {new Date(req.createdAt).toLocaleDateString("es-ES", { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            req.status === "PENDIENTE" ? "bg-yellow-50 text-yellow-700"
+                            : req.status === "APROBADA" ? "bg-green-50 text-green-700"
+                            : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <button
+                          onClick={() => setSelectedRequestView(req)}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Ver detalles"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <div className="text-gray-500">
+                        No se encontraron solicitudes registradas
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Modal de Edición de Usuario */}
-      {showEditModal && editingUser && (
+      {/* Modal de Revisión de Solicitud de Mentor */}
+      {selectedMentorRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
-                Editar Usuario
+                Revisar Solicitud de Mentor
               </h2>
               <button
                 onClick={() => {
-                  setShowEditModal(false);
-                  setEditingUser(null);
+                  setSelectedMentorRequest(null);
+                  setIsRejecting(false);
+                  setRejectReason("");
                 }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -751,53 +897,65 @@ export default function Admin() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  value={editingUser.name}
-                  onChange={(e) =>
-                    setEditingUser({ ...editingUser, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                <label className="block text-sm font-medium text-gray-500">Usuario solicitante</label>
+                <p className="text-gray-900 font-medium">{selectedMentorRequest.name}</p>
+                <p className="text-gray-500 text-sm">{selectedMentorRequest.email}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) =>
-                    setEditingUser({ ...editingUser, email: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+              <div className="bg-indigo-50 p-4 rounded-lg space-y-3 border border-indigo-100">
+                <div>
+                  <label className="block text-xs font-medium text-indigo-900 uppercase tracking-wider mb-1">
+                    Código de Certificación
+                  </label>
+                  <p className="text-indigo-900 font-semibold">{selectedMentorRequest.certificationCode || "No proporcionado"}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-indigo-900 uppercase tracking-wider mb-1">
+                    Institución Emisora
+                  </label>
+                  <p className="text-indigo-900 font-semibold">{selectedMentorRequest.institution || "No proporcionado"}</p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-                <AlertCircle className="w-4 h-4 inline mr-2" />
-                Información sensible (contraseña) no se puede editar desde aquí
-              </p>
+              
+              {isRejecting ? (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Razón del rechazo
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Indica por qué se rechaza esta solicitud..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows={3}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 mt-2">
+                  Verifica la validez de la certificación antes de aprobar esta solicitud para asegurar la calidad de los mentores en la plataforma.
+                </p>
+              )}
             </div>
-            <div className="flex gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingUser(null);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveUser}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                Guardar
-              </button>
+            
+            <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+              {isRejecting ? (
+                <>
+                  <button onClick={() => { setIsRejecting(false); setRejectReason(""); }} className="flex-1 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancelar
+                  </button>
+                  <button onClick={() => handleRejectMentor(selectedMentorRequest.id)} disabled={!rejectReason.trim()} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium">
+                    Confirmar Rechazo
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setIsRejecting(true)} className="flex-1 px-4 py-2 border border-red-200 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-medium flex justify-center items-center gap-2">
+                    <X className="w-4 h-4" /> Rechazar
+                  </button>
+                  <button onClick={() => handleApproveMentor(selectedMentorRequest.id)} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex justify-center items-center gap-2">
+                    <Check className="w-4 h-4" /> Aprobar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -815,9 +973,7 @@ export default function Admin() {
                 Confirmar eliminación
               </h3>
               <p className="text-gray-600 mb-6">
-                {deleteConfirm.type === "user"
-                  ? "¿Está seguro de que desea eliminar este usuario? Esta acción no se puede deshacer."
-                  : "¿Está seguro de que desea eliminar esta mentoría? Esta acción no se puede deshacer."}
+                ¿Está seguro de que desea eliminar esta mentoría? Esta acción no se puede deshacer.
               </p>
             </div>
             <div className="flex gap-3 p-6 border-t border-gray-200">
@@ -829,15 +985,74 @@ export default function Admin() {
               </button>
               <button
                 onClick={() => {
-                  if (deleteConfirm.type === "user") {
-                    handleDeleteUser(deleteConfirm.id);
-                  } else {
-                    handleDeleteMentoría(deleteConfirm.id);
-                  }
+                  handleDeleteMentoría(deleteConfirm.id);
                 }}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalles de Solicitud (Modo Lectura) */}
+      {selectedRequestView && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Registro de Solicitud
+              </h2>
+              <button
+                onClick={() => setSelectedRequestView(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Usuario</label>
+                  <p className="text-gray-900 font-medium">{selectedRequestView.user?.name || "Usuario Desconocido"}</p>
+                  <p className="text-gray-500 text-sm">{selectedRequestView.user?.email || "Sin email"}</p>
+                </div>
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedRequestView.status === "PENDIENTE" ? "bg-yellow-50 text-yellow-700" :
+                    selectedRequestView.status === "APROBADA" ? "bg-green-50 text-green-700" :
+                    "bg-red-50 text-red-700"
+                  }`}>
+                    {selectedRequestView.status}
+                </span>
+              </div>
+              
+              {selectedRequestView.type === "MENTOR" && (
+                <div className="bg-indigo-50 p-4 rounded-lg space-y-3 border border-indigo-100 mt-2">
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-900 uppercase tracking-wider mb-1">Código de Certificación</label>
+                    <p className="text-indigo-900 font-semibold">{selectedRequestView.certificationCode || "N/A"}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-900 uppercase tracking-wider mb-1">Institución Emisora</label>
+                    <p className="text-indigo-900 font-semibold">{selectedRequestView.institution || "N/A"}</p>
+                  </div>
+                </div>
+              )}
+              {selectedRequestView.status === "RECHAZADA" && selectedRequestView.rejectionReason && (
+                <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-2">
+                  <label className="block text-xs font-medium text-red-900 uppercase tracking-wider mb-1">Razón del Rechazo</label>
+                  <p className="text-red-800 text-sm">{selectedRequestView.rejectionReason}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Fecha de Creación</label>
+                <p className="text-gray-900 text-sm">{new Date(selectedRequestView.createdAt).toLocaleString("es-ES")}</p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg flex justify-end">
+              <button onClick={() => setSelectedRequestView(null)} className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                Cerrar
               </button>
             </div>
           </div>
@@ -918,18 +1133,22 @@ export default function Admin() {
                   <div>
                     <span
                       className={`px-3 py-2 rounded-full text-sm font-medium inline-block ${
-                        selectedMentoría.status === "activa"
+                          selectedMentoría.status === "aceptada" || selectedMentoría.status === "activa"
                           ? "bg-green-50 text-green-700"
                           : selectedMentoría.status === "completada"
                           ? "bg-blue-50 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
+                            : selectedMentoría.status === "pendiente"
+                            ? "bg-yellow-50 text-yellow-700"
+                            : "bg-red-50 text-red-700"
                       }`}
                     >
-                      {selectedMentoría.status === "activa"
-                        ? "🟢 Activa"
+                        {selectedMentoría.status === "aceptada" || selectedMentoría.status === "activa"
+                          ? "🟢 Aceptada"
                         : selectedMentoría.status === "completada"
                         ? "✓ Completada"
-                        : "🔴 Deshabilitada"}
+                          : selectedMentoría.status === "pendiente"
+                          ? "⏳ Pendiente"
+                          : "🔴 Cancelada"}
                     </span>
                   </div>
                 </div>
@@ -993,7 +1212,7 @@ export default function Admin() {
               >
                 Cerrar
               </button>
-              {selectedMentoría.status === "activa" && (
+              {(selectedMentoría.status === "activa" || selectedMentoría.status === "aceptada" || selectedMentoría.status === "pendiente") && (
                 <button
                   onClick={() => {
                     handleDisableMentoría(selectedMentoría.id);
@@ -1002,7 +1221,7 @@ export default function Admin() {
                   className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium flex items-center justify-center gap-2"
                 >
                   <EyeOff className="w-4 h-4" />
-                  Deshabilitar
+                  Cancelar Mentoría
                 </button>
               )}
             </div>

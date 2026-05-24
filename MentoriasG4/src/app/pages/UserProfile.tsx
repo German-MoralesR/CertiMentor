@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, User, Mail, Shield, BookOpen, Star, Clock, Edit3, Settings, LogOut, Key } from "lucide-react";
+import { ArrowLeft, User, Mail, Shield, BookOpen, Star, Clock, Edit3, Settings, LogOut, Key, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function UserProfile() {
@@ -37,6 +37,12 @@ export default function UserProfile() {
   const [profileData, setProfileData] = useState({ name: user?.name || "", profileImage: "" });
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
 
+  // Estados para gestionar solicitud de mentor
+  const [fullUserDetails, setFullUserDetails] = useState<any>(null);
+  const [showMentorRequestModal, setShowMentorRequestModal] = useState(false);
+  const [mentorRequestData, setMentorRequestData] = useState({ certificationCode: "", institution: "" });
+  const [mentorRequestMessage, setMentorRequestMessage] = useState({ type: "", text: "" });
+
   // Efecto para obtener las estadísticas reales
   useEffect(() => {
     if (user?.id) {
@@ -45,6 +51,12 @@ export default function UserProfile() {
       if (storedUser.profileImage) {
         setProfileData(prev => ({ ...prev, profileImage: storedUser.profileImage }));
       }
+      
+      // Obtener detalles completos del usuario para ver estado de solicitud
+      fetch(`http://localhost:8081/api/users/${user.id}`)
+        .then(res => res.json())
+        .then(data => setFullUserDetails(data))
+        .catch(err => console.error("Error fetching user details", err));
 
       if (user.role === "estudiante") {
         fetch(`http://localhost:8083/api/mentorship-sessions/student/${user.id}`)
@@ -159,6 +171,37 @@ export default function UserProfile() {
       }
     } catch (err) {
       setProfileMessage({ type: "error", text: "Error de conexión con el servidor." });
+    }
+  };
+
+  const handleMentorRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/mentor-request`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify(mentorRequestData),
+      });
+      
+      if (response.ok) {
+        setMentorRequestMessage({ type: "success", text: "¡Solicitud enviada exitosamente!" });
+        
+        // Actualizar el estado local
+        setFullUserDetails({
+          ...fullUserDetails,
+          mentorRequest: true,
+          certificationCode: mentorRequestData.certificationCode,
+          institution: mentorRequestData.institution,
+          mentorRejectionReason: null
+        });
+      } else {
+        setMentorRequestMessage({ type: "error", text: "Error al enviar la solicitud." });
+      }
+    } catch (err) {
+      setMentorRequestMessage({ type: "error", text: "Error de conexión con el servidor." });
     }
   };
 
@@ -312,6 +355,22 @@ export default function UserProfile() {
               </label>
             </div>
 
+            {/* Solicitud de Mentor */}
+            {user?.role === "estudiante" && (
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <div>
+                  <p className="font-medium text-gray-900">Solicitud de Mentor</p>
+                  <p className="text-sm text-gray-500">Gestiona tu solicitud para convertirte en mentor</p>
+                </div>
+                <button 
+                  onClick={() => { setShowMentorRequestModal(true); setMentorRequestMessage({ type: "", text: "" }); }}
+                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium px-3 py-1 bg-indigo-50 rounded-lg transition-colors"
+                >
+                  Gestionar
+                </button>
+              </div>
+            )}
+
             {/* Zona de peligro */}
             <div className="pt-4 flex flex-col items-start gap-4">
               <button 
@@ -429,6 +488,90 @@ export default function UserProfile() {
                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Guardar Cambios</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Gestionar Solicitud de Mentor */}
+      {showMentorRequestModal && fullUserDetails && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Shield className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Solicitud de Mentor</h3>
+            </div>
+
+            {mentorRequestMessage.text && (
+              <div className={`p-3 rounded-lg mb-4 text-sm font-medium flex items-center gap-2 ${mentorRequestMessage.type === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {mentorRequestMessage.type === "success" && <CheckCircle2 className="w-4 h-4" />}
+                {mentorRequestMessage.text}
+              </div>
+            )}
+
+            {/* Si la solicitud está pendiente */}
+            {fullUserDetails.mentorRequest ? (
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-8 h-8 text-yellow-600" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Solicitud en revisión</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Tu solicitud está siendo revisada por un administrador. Te notificaremos cuando haya una actualización.
+                </p>
+                <div className="bg-gray-50 p-4 rounded-lg text-left border border-gray-100">
+                  <p className="text-sm"><strong className="text-gray-700">Código:</strong> <span className="font-medium">{fullUserDetails.certificationCode}</span></p>
+                  <p className="text-sm mt-2"><strong className="text-gray-700">Institución:</strong> <span className="font-medium">{fullUserDetails.institution}</span></p>
+                </div>
+                <div className="mt-6 flex justify-end">
+                  <button type="button" onClick={() => setShowMentorRequestModal(false)} className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors">Cerrar</button>
+                </div>
+              </div>
+            ) : (
+              /* Si no está pendiente (rechazada o nunca solicitó) */
+              <form onSubmit={handleMentorRequestSubmit} className="space-y-4">
+                {fullUserDetails.mentorRejectionReason && (
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-200 mb-4">
+                    <h4 className="text-sm font-semibold text-red-800 mb-1">Solicitud anterior rechazada</h4>
+                    <p className="text-sm text-red-700">{fullUserDetails.mentorRejectionReason}</p>
+                    <p className="text-xs text-red-600 mt-2 font-medium">Puedes enviar una nueva solicitud corrigiendo la información.</p>
+                  </div>
+                )}
+                
+                <p className="text-sm text-gray-600 mb-4">
+                  Completa los datos de tu certificación para solicitar ser mentor en la plataforma.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Código de Certificación</label>
+                  <input 
+                    type="text" 
+                    value={mentorRequestData.certificationCode}
+                    onChange={(e) => setMentorRequestData({...mentorRequestData, certificationCode: e.target.value})}
+                    placeholder="Ej: CERT-12345"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Institución</label>
+                  <input 
+                    type="text" 
+                    value={mentorRequestData.institution}
+                    onChange={(e) => setMentorRequestData({...mentorRequestData, institution: e.target.value})}
+                    placeholder="Ej: Universidad de Ejemplo"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    required 
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button type="button" onClick={() => setShowMentorRequestModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">Cancelar</button>
+                  <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Enviar Solicitud</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

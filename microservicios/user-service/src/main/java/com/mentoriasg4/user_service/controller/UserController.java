@@ -1,6 +1,9 @@
 package com.mentoriasg4.user_service.controller;
 
+import com.mentoriasg4.user_service.dto.UsuarioDto;
+import com.mentoriasg4.user_service.model.Solicitud;
 import com.mentoriasg4.user_service.model.Usuario;
+import com.mentoriasg4.user_service.repository.SolicitudRepository;
 import com.mentoriasg4.user_service.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,17 +25,53 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private SolicitudRepository solicitudRepository;
+
     @Value("${internal.service.token}")
     private String internalToken;
 
+    private UsuarioDto convertToDto(Usuario u) {
+        UsuarioDto dto = new UsuarioDto();
+        dto.setId(u.getId());
+        dto.setName(u.getName());
+        dto.setEmail(u.getEmail());
+        dto.setProfileImage(u.getProfileImage());
+        dto.setStatus(u.getStatus());
+        dto.setRole(u.getRole());
+
+        List<Solicitud> solicitudes = solicitudRepository.findByUser_Id(u.getId());
+        Solicitud ultimaMentor = solicitudes.stream()
+            .filter(s -> "MENTOR".equals(s.getType()))
+            .reduce((first, second) -> second) // obtener la última
+            .orElse(null);
+
+        if (ultimaMentor != null) {
+            if ("PENDIENTE".equals(ultimaMentor.getStatus())) {
+                dto.setMentorRequest(true);
+                dto.setCertificationCode(ultimaMentor.getCertificationCode());
+                dto.setInstitution(ultimaMentor.getInstitution());
+            } else if ("RECHAZADA".equals(ultimaMentor.getStatus())) {
+                dto.setMentorRequest(false);
+                dto.setMentorRejectionReason(ultimaMentor.getRejectionReason());
+            } else {
+                dto.setMentorRequest(false);
+            }
+        } else {
+            dto.setMentorRequest(false);
+        }
+        return dto;
+    }
+
     @GetMapping
-    public ResponseEntity<List<Usuario>> getAllUsers() {
-        return ResponseEntity.ok(usuarioRepository.findAll());
+    public ResponseEntity<List<UsuarioDto>> getAllUsers() {
+        return ResponseEntity.ok(usuarioRepository.findAll().stream().map(this::convertToDto).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UsuarioDto> getUserById(@PathVariable Long id) {
         return usuarioRepository.findById(id)
+                .map(this::convertToDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -69,7 +108,7 @@ public class UserController {
     @PutMapping("/{id}/profile")
     public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody java.util.Map<String, String> data) {
         return usuarioRepository.findById(id).map(usuario -> {
-            if (data.containsKey("name")) usuario.setNombre(data.get("name"));
+            if (data.containsKey("name")) usuario.setName(data.get("name"));
             if (data.containsKey("profileImage")) usuario.setProfileImage(data.get("profileImage"));
             usuarioRepository.save(usuario);
             return ResponseEntity.ok().build();
@@ -81,13 +120,51 @@ public class UserController {
         return usuarioRepository.findById(id).map(usuario -> {
             // Buscamos o instanciamos el rol de Mentor (ID 2)
             com.mentoriasg4.user_service.model.Rol rolMentor = new com.mentoriasg4.user_service.model.Rol();
-            rolMentor.setId_rol(2);
-            rolMentor.setNombre("MENTOR");
+            rolMentor.setId(2);
+            rolMentor.setName("MENTOR");
             
-            usuario.setRol(rolMentor);
-            usuario.setMentorRequest(false); // Limpiamos la solicitud
+            usuario.setRole(rolMentor);
             usuarioRepository.save(usuario);
             
+            List<Solicitud> pendientes = solicitudRepository.findByUser_Id(id);
+            for (Solicitud s : pendientes) {
+                if ("PENDIENTE".equals(s.getStatus()) && "MENTOR".equals(s.getType())) {
+                    s.setStatus("APROBADA");
+                    solicitudRepository.save(s);
+                }
+            }
+
+            return ResponseEntity.ok().build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/mentor-request")
+    public ResponseEntity<?> requestMentor(@PathVariable Long id, @RequestBody java.util.Map<String, String> data) {
+        return usuarioRepository.findById(id).map(usuario -> {
+            Solicitud solicitud = new Solicitud();
+            solicitud.setUser(usuario);
+            solicitud.setType("MENTOR");
+            solicitud.setStatus("PENDIENTE");
+            solicitud.setCertificationCode(data.get("certificationCode"));
+            solicitud.setInstitution(data.get("institution"));
+            solicitudRepository.save(solicitud);
+            return ResponseEntity.ok().build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/reject-mentor")
+    public ResponseEntity<?> rejectMentor(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> payload) {
+        return usuarioRepository.findById(id).map(usuario -> {
+            List<Solicitud> pendientes = solicitudRepository.findByUser_Id(id);
+            for (Solicitud s : pendientes) {
+                if ("PENDIENTE".equals(s.getStatus()) && "MENTOR".equals(s.getType())) {
+                    s.setStatus("RECHAZADA");
+                    if (payload != null && payload.containsKey("reason")) {
+                        s.setRejectionReason(payload.get("reason"));
+                    }
+                    solicitudRepository.save(s);
+                }
+            }
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -95,7 +172,7 @@ public class UserController {
     @PutMapping("/{id}/admin-edit")
     public ResponseEntity<?> adminEditUser(@PathVariable Long id, @RequestBody java.util.Map<String, String> data) {
         return usuarioRepository.findById(id).map(usuario -> {
-            if (data.containsKey("name")) usuario.setNombre(data.get("name"));
+            if (data.containsKey("name")) usuario.setName(data.get("name"));
             if (data.containsKey("email")) usuario.setEmail(data.get("email"));
             usuarioRepository.save(usuario);
             return ResponseEntity.ok().build();

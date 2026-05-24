@@ -21,9 +21,9 @@ public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id_usuario;
+    private Long id;
 
-    private String nombre;
+    private String name;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -35,17 +35,15 @@ public class Usuario implements UserDetails {
     @Column(length = 1000)
     private String profileImage;
 
-    private Boolean mentorRequest = false;
-
     private String status = "activo"; // "activo" o "inactivo"
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_rol", referencedColumnName = "id_rol")
-    private Rol rol;
+    @JoinColumn(name = "role_id", referencedColumnName = "id")
+    private Rol role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(rol.getNombre()));
+        return List.of(new SimpleGrantedAuthority(role.getName()));
     }
 
     @Override

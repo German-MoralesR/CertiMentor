@@ -14,6 +14,8 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [mentorRequest, setMentorRequest] = useState(false);
+  const [certificationCode, setCertificationCode] = useState("");
+  const [institution, setInstitution] = useState("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -35,6 +37,12 @@ export default function Login() {
         setError("Debes aceptar los Términos y Condiciones");
         return;
       }
+      if (mentorRequest) {
+        if (!certificationCode || !institution) {
+          setError("Por favor completa los datos de certificación para ser mentor");
+          return;
+        }
+      }
       const fullName = `${firstName} ${lastName}`.trim();
       
       // Hacemos el fetch directamente para poder enviar el nuevo campo 'mentorRequest'
@@ -42,7 +50,14 @@ export default function Login() {
         const response = await fetch("http://localhost:8081/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre: fullName, email, password, mentorRequest }),
+          body: JSON.stringify({ 
+            name: fullName, 
+            email, 
+            password, 
+            mentorRequest,
+            certificationCode: mentorRequest ? certificationCode : null,
+            institution: mentorRequest ? institution : null
+          }),
         });
         
         if (response.ok) {
@@ -51,7 +66,9 @@ export default function Login() {
         setPassword(""); // Limpiar contraseñas por seguridad
         setConfirmPassword("");
         setAcceptTerms(false);
-          setMentorRequest(false);
+        setMentorRequest(false);
+        setCertificationCode("");
+        setInstitution("");
         } else {
           setError("Error al registrarse. El correo podría ya estar en uso.");
         }
@@ -259,21 +276,54 @@ export default function Login() {
                 />
               </div>
               
-              <div className="flex items-start mt-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                <div className="flex items-center h-5">
-                  <input
-                    id="mentorReq"
-                    type="checkbox"
-                    checked={mentorRequest}
-                    onChange={(e) => setMentorRequest(e.target.checked)}
-                    className="w-4 h-4 border border-gray-300 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
+              <div className="mt-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="mentorReq"
+                      type="checkbox"
+                      checked={mentorRequest}
+                      onChange={(e) => setMentorRequest(e.target.checked)}
+                      className="w-4 h-4 border border-gray-300 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </div>
+                  <div className="ml-2 text-sm">
+                    <label htmlFor="mentorReq" className="font-medium text-indigo-900 cursor-pointer">
+                      Quiero ser Mentor (Mi cuenta requerirá aprobación de un administrador)
+                    </label>
+                  </div>
                 </div>
-                <div className="ml-2 text-sm">
-                  <label htmlFor="mentorReq" className="font-medium text-indigo-900 cursor-pointer">
-                    Quiero ser Mentor (Mi cuenta requerirá aprobación de un administrador)
-                  </label>
-                </div>
+                
+                {mentorRequest && (
+                  <div className="mt-4 pl-6 space-y-3">
+                    <div>
+                      <label htmlFor="certificationCode" className="block text-sm font-medium text-indigo-900 mb-1">
+                        Código de Certificación
+                      </label>
+                      <input
+                        id="certificationCode"
+                        type="text"
+                        value={certificationCode}
+                        onChange={(e) => setCertificationCode(e.target.value)}
+                        placeholder="Ej: CERT-12345"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="institution" className="block text-sm font-medium text-indigo-900 mb-1">
+                        Institución
+                      </label>
+                      <input
+                        id="institution"
+                        type="text"
+                        value={institution}
+                        onChange={(e) => setInstitution(e.target.value)}
+                        placeholder="Ej: Universidad de Ejemplo"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-start mt-4">
