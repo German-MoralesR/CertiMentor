@@ -9,6 +9,7 @@ export interface MentorshipOffer {
   mentorId: number;
   mentorName: string;
   title: string;
+  description?: string;
   image: string;
   price: number;
   sessionsCompleted: number;
@@ -25,6 +26,7 @@ export interface MentorshipOffer {
 interface FormData {
   title: string;
   image: string;
+  description: string;
   skills: string;
   price: string; // Se guarda como string en el estado para facilitar el input
   isGratis: boolean; // Estado para manejar el botón y deshabilitar el input
@@ -63,6 +65,7 @@ export default function MentorDashboard() {
   const [formData, setFormData] = useState<FormData>({
     title: "",
     image: "",
+    description: "",
     skills: "",
     price: "",
     isGratis: true,
@@ -156,6 +159,10 @@ export default function MentorDashboard() {
       setValidationError("La URL de la imagen es requerida");
       return false;
     }
+    if (!formData.description.trim()) {
+      setValidationError("La descripción de la mentoría es requerida");
+      return false;
+    }
     if (!formData.skills.trim()) {
       setValidationError("Al menos una habilidad es requerida");
       return false;
@@ -178,6 +185,7 @@ export default function MentorDashboard() {
       mentorId: currentMentorId,
       mentorName: user?.name || "Mentor Experto", 
       title: formData.title,
+      description: formData.description,
       image: formData.image,
       skills: formData.skills.split(",").map((s) => s.trim()).filter((s) => s),
       price: formData.isGratis ? 0 : parseInt(formData.price) || 0,
@@ -217,6 +225,7 @@ export default function MentorDashboard() {
     setFormData({
       title: offer.title,
       image: offer.image,
+      description: offer.description || "",
       skills: offer.skills.join(", "),
       price: offer.price === 0 ? "" : offer.price.toString(),
       isGratis: offer.price === 0,
@@ -250,6 +259,7 @@ export default function MentorDashboard() {
     setFormData({
       title: "",
       image: "",
+      description: "",
       skills: "",
       price: "",
       isGratis: true,
@@ -676,6 +686,20 @@ export default function MentorDashboard() {
                       />
                     </div>
                   )}
+                </div>
+
+                {/* Descripción de la Mentoría */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción de la Mentoría
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe qué se enseñará, metodologías, requisitos, etc..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-24 resize-none"
+                  />
                 </div>
 
                 {/* Habilidades */}

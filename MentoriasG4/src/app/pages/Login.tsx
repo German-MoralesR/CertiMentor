@@ -33,6 +33,12 @@ export default function Login() {
         setError("Las contraseñas no coinciden");
         return;
       }
+      // Validación de contraseña en el frontend para feedback inmediato
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-+=_{}[\]|;:'",.<>/?~]).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        setError("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.");
+        return;
+      }
       if (!acceptTerms) {
         setError("Debes aceptar los Términos y Condiciones");
         return;
@@ -70,7 +76,8 @@ export default function Login() {
         setCertificationCode("");
         setInstitution("");
         } else {
-          setError("Error al registrarse. El correo podría ya estar en uso.");
+          const errorData = await response.json();
+          setError(errorData.error || "Error al registrarse. El correo podría ya estar en uso.");
         }
       } catch (err) {
         setError("Error de conexión con el servidor.");

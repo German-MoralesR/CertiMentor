@@ -6,9 +6,6 @@ import com.mentoriasg4.feedback_service.model.Review;
 import com.mentoriasg4.feedback_service.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -59,14 +56,9 @@ public class ReviewController {
             dto.setCreatedAt(review.getCreatedAt());
 
             try {
-                // Petición HTTP síncrona a user-service
-                String userServiceUrl = "http://localhost:8081/api/users/internal/" + review.getStudentId();
-                
-                HttpHeaders headers = new HttpHeaders();
-                headers.set("X-Service-Token", internalToken);
-                HttpEntity<String> entity = new HttpEntity<>(headers);
-                
-                ResponseEntity<UserDto> responseTemplate = restTemplate.exchange(userServiceUrl, HttpMethod.GET, entity, UserDto.class);
+                // Petición HTTP síncrona al endpoint público de user-service
+                String userServiceUrl = "http://localhost:8081/api/users/" + review.getStudentId();
+                ResponseEntity<UserDto> responseTemplate = restTemplate.getForEntity(userServiceUrl, UserDto.class);
                 UserDto user = responseTemplate.getBody();
                 
                 if (user != null) {

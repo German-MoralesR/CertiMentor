@@ -16,6 +16,7 @@ export interface MentorshipOffer {
   mentorId: number;
   mentorName: string;
   title: string;
+  description?: string;
   image: string;
   price: number;
   sessionsCompleted: number;
@@ -46,10 +47,12 @@ export default function MentorProfile() {
   const { user, isLoggedIn } = useAuth();
 
   const [mentor, setMentor] = useState<MentorshipOffer | null>(null);
+  const [mentorUser, setMentorUser] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<{date: string, time: string}[]>([]);
+  const [bookingNotes, setBookingNotes] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
@@ -79,6 +82,11 @@ export default function MentorProfile() {
             .then(res => res.json())
             .then(fetchedReviews => setReviews(fetchedReviews))
             .catch(err => console.error("Error fetching reviews:", err));
+              
+            fetch(`http://localhost:8081/api/users/${data.mentorId}`)
+              .then(res => res.json())
+              .then(userData => setMentorUser(userData))
+              .catch(err => console.error("Error fetching mentor user:", err));
           }
         })
         .catch(err => console.error("Error fetching mentor profile:", err));
@@ -104,11 +112,13 @@ export default function MentorProfile() {
     const bookingPayload = {
       mentorId: mentor.mentorId,
       offerId: mentor.id,
+      offerTitle: mentor.title,
       studentId: user.id,
       mentorName: mentor.mentorName,
+      mentorImage: mentorUser?.profileImage || `https://ui-avatars.com/api/?name=${mentor.mentorName.replace(" ", "+")}`,
       studentName: user.name,
       studentImage,
-      topic: `Mentoría sobre ${mentor.skills[0] || 'desarrollo'}`,
+      topic: bookingNotes.trim() || `Mentoría general sobre ${mentor.skills[0] || 'desarrollo'}`,
       date: selectedDate,
       time: selectedSlot,
       duration: 30,
@@ -178,17 +188,19 @@ export default function MentorProfile() {
               <div className="p-8">
                 <div className="flex gap-6">
                   <div className="relative w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-gray-100">
-                    <ImageWithFallback
-                      src={mentor.image}
-                      alt={mentor.mentorName}
-                      className="w-full h-full object-cover"
-                    />
+                    {mentorUser?.profileImage ? (
+                      <img src={mentorUser.profileImage} alt={mentor.mentorName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-4xl font-bold text-indigo-600">
+                        {mentor.mentorName.charAt(0)}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      {mentor.mentorName}
+                      {mentor.title}
                     </h1>
-                    <p className="text-lg text-gray-600 mb-4">{mentor.title}</p>
+                    <p className="text-lg text-gray-600 mb-4">{mentor.mentorName}</p>
 
                     <div className="flex flex-wrap gap-4 mb-4">
                       <div className="flex items-center gap-1">
@@ -216,6 +228,11 @@ export default function MentorProfile() {
                         </span>
                       ))}
                     </div>
+
+                    <div className="mt-6 border-t border-gray-100 pt-6">
+                      <h3 className="font-semibold text-gray-900 mb-2">Sobre esta mentoría</h3>
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{mentor.description || "Sin descripción detallada."}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -226,7 +243,9 @@ export default function MentorProfile() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Acerca de mí
               </h2>
-              <p className="text-gray-700 leading-relaxed">Desarrollador con más de 8 años de experiencia. Me especializo en las tecnologías listadas y me apasiona ayudar a otros a resolver problemas complejos.</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                {mentorUser?.description || "El mentor aún no ha añadido una descripción a su perfil."}
+              </p>
             </div>
 
             {/* Reviews */}
@@ -426,6 +445,20 @@ export default function MentorProfile() {
                     <span className="font-medium text-gray-900">15-30 min</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Textarea para propósito de la mentoría */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ¿Qué te gustaría aprender o resolver en esta sesión?
+                </label>
+                <textarea
+                  value={bookingNotes}
+                  onChange={(e) => setBookingNotes(e.target.value)}
+                  placeholder="Ej: Tengo dudas sobre cómo implementar la autenticación o me gustaría revisar un error en mi código..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  rows={3}
+                />
               </div>
 
               <div className="flex gap-3">

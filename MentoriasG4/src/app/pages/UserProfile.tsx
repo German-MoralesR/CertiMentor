@@ -34,7 +34,7 @@ export default function UserProfile() {
 
   // Estados para la edición de perfil
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileData, setProfileData] = useState({ name: user?.name || "", profileImage: "" });
+  const [profileData, setProfileData] = useState({ name: user?.name || "", profileImage: "", description: "" });
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
 
   // Estados para gestionar solicitud de mentor
@@ -55,7 +55,14 @@ export default function UserProfile() {
       // Obtener detalles completos del usuario para ver estado de solicitud
       fetch(`http://localhost:8081/api/users/${user.id}`)
         .then(res => res.json())
-        .then(data => setFullUserDetails(data))
+        .then(data => {
+          setFullUserDetails(data);
+          setProfileData(prev => ({
+            ...prev,
+            profileImage: data.profileImage || prev.profileImage,
+            description: data.description || ""
+          }));
+        })
         .catch(err => console.error("Error fetching user details", err));
 
       if (user.role === "estudiante") {
@@ -111,6 +118,12 @@ export default function UserProfile() {
       setPasswordMessage({ type: "error", text: "Las contraseñas nuevas no coinciden." });
       return;
     }
+    // Validación de contraseña en el frontend para feedback inmediato
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-+=_{}[\]|;:'",.<>/?~]).{8,}$/;
+    if (!passwordRegex.test(passwords.new)) {
+      setPasswordMessage({ type: "error", text: "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo." });
+      return;
+    }
     try {
       const response = await fetch(`http://localhost:8081/api/users/${user?.id}/password`, {
         method: "PUT",
@@ -131,7 +144,8 @@ export default function UserProfile() {
           setPasswordMessage({ type: "", text: "" });
         }, 2000);
       } else {
-        setPasswordMessage({ type: "error", text: "La contraseña actual es incorrecta." });
+        const errorData = await response.json();
+        setPasswordMessage({ type: "error", text: errorData.error || "La contraseña actual es incorrecta." });
       }
     } catch (err) {
       setPasswordMessage({ type: "error", text: "Error de conexión con el servidor." });
@@ -149,7 +163,8 @@ export default function UserProfile() {
         },
         body: JSON.stringify({
           name: profileData.name,
-          profileImage: profileData.profileImage
+          profileImage: profileData.profileImage,
+          description: profileData.description
         }),
       });
       
@@ -230,9 +245,9 @@ export default function UserProfile() {
           <div className="p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Avatar placeholder */}
-              <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                {currentUserData.profileImage ? (
-                  <img src={currentUserData.profileImage} alt="Perfil" className="w-full h-full object-cover rounded-full" />
+              <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {fullUserDetails?.profileImage || currentUserData.profileImage ? (
+                  <img src={fullUserDetails?.profileImage || currentUserData.profileImage} alt="Perfil" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-bold text-indigo-600">
                     {user?.name?.charAt(0).toUpperCase() || "U"}
@@ -481,6 +496,17 @@ export default function UserProfile() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">Ingresa el link directo a una imagen.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Acerca de mí</label>
+                <textarea 
+                  value={profileData.description}
+                  onChange={(e) => setProfileData({...profileData, description: e.target.value})}
+                  placeholder="Cuéntanos un poco sobre ti, tu experiencia o tus objetivos..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Esta descripción será visible en tu perfil.</p>
               </div>
               
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">

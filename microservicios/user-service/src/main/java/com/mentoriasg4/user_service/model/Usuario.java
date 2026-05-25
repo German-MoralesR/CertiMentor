@@ -35,6 +35,9 @@ public class Usuario implements UserDetails {
     @Column(length = 1000)
     private String profileImage;
 
+    @Column(length = 2000)
+    private String description;
+
     private String status = "activo"; // "activo" o "inactivo"
 
     @ManyToOne(fetch = FetchType.EAGER)

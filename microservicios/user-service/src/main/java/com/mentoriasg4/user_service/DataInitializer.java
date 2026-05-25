@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
             Rol rolMentor = rolRepository.findById(2).orElseThrow();
             Rol rolEstudiante = rolRepository.findById(3).orElseThrow();
 
-            String defaultPassword = passwordEncoder.encode("123456");
+            String defaultPassword = passwordEncoder.encode("123123");
 
             // 1. Admin (ID 1)
             Usuario admin = new Usuario();
@@ -62,6 +62,7 @@ public class DataInitializer implements CommandLineRunner {
             mentor1.setPassword(defaultPassword);
             mentor1.setRole(rolMentor);
             mentor1.setProfileImage("https://randomuser.me/api/portraits/men/45.jpg");
+            mentor1.setDescription("Desarrollador con más de 10 años de experiencia construyendo aplicaciones escalables. Apasionado por la enseñanza y el código limpio.");
 
             Usuario mentor2 = new Usuario();
             mentor2.setName("Laura Gómez");
@@ -69,6 +70,7 @@ public class DataInitializer implements CommandLineRunner {
             mentor2.setPassword(defaultPassword);
             mentor2.setRole(rolMentor);
             mentor2.setProfileImage("https://randomuser.me/api/portraits/women/44.jpg");
+            mentor2.setDescription("Especialista en interfaces de usuario y experiencia de usuario. Te ayudo a llevar tus diseños de Figma a código perfecto.");
 
             Usuario mentor3 = new Usuario();
             mentor3.setName("David Silva");
@@ -76,6 +78,7 @@ public class DataInitializer implements CommandLineRunner {
             mentor3.setPassword(defaultPassword);
             mentor3.setRole(rolMentor);
             mentor3.setProfileImage("https://randomuser.me/api/portraits/men/67.jpg");
+            mentor3.setDescription("Ingeniero DevOps y Arquitecto Cloud certificado en AWS. Experto en automatización, CI/CD y microservicios.");
 
             Usuario mentor4 = new Usuario();
             mentor4.setName("Ana Martínez");
@@ -83,6 +86,7 @@ public class DataInitializer implements CommandLineRunner {
             mentor4.setPassword(defaultPassword);
             mentor4.setRole(rolMentor);
             mentor4.setProfileImage("https://randomuser.me/api/portraits/women/68.jpg");
+            mentor4.setDescription("Científica de datos con maestría en IA. Amo enseñar Python, Machine Learning y análisis de datos de forma sencilla.");
 
             // 3. Estudiantes (IDs 6 al 10)
             Usuario estudiante1 = new Usuario();
@@ -106,9 +110,23 @@ public class DataInitializer implements CommandLineRunner {
             estudiante3.setRole(rolEstudiante);
             estudiante3.setProfileImage("https://randomuser.me/api/portraits/women/79.jpg");
 
+            Usuario estudiante4 = new Usuario();
+            estudiante4.setName("Luis Rojas");
+            estudiante4.setEmail("luis@mentorias.com");
+            estudiante4.setPassword(defaultPassword);
+            estudiante4.setRole(rolEstudiante);
+            estudiante4.setProfileImage("https://randomuser.me/api/portraits/men/22.jpg");
+
+            Usuario estudiante5 = new Usuario();
+            estudiante5.setName("María Pinto");
+            estudiante5.setEmail("maria@mentorias.com");
+            estudiante5.setPassword(defaultPassword);
+            estudiante5.setRole(rolEstudiante);
+            estudiante5.setProfileImage("https://randomuser.me/api/portraits/women/12.jpg");
+
             usuarioRepository.saveAll(List.of(
                 admin, mentor1, mentor2, mentor3, mentor4, 
-                estudiante1, estudiante2, estudiante3
+                estudiante1, estudiante2, estudiante3, estudiante4, estudiante5
             ));
 
             Solicitud solicitud = new Solicitud();

@@ -14,7 +14,8 @@ public class MentorshipSession {
     private Long offerId;
     private Long studentId;
     private String mentorName;
-    private String studentName;
+    private String mentorImage;
+    private String offerTitle;
     private String studentImage;
     private String topic;
     
@@ -70,12 +71,20 @@ public class MentorshipSession {
         this.mentorName = mentorName;
     }
 
-    public String getStudentName() {
-        return studentName;
+    public String getMentorImage() {
+        return mentorImage;
     }
 
-    public void setStudentName(String studentName) {
-        this.studentName = studentName;
+    public void setMentorImage(String mentorImage) {
+        this.mentorImage = mentorImage;
+    }
+
+    public String getOfferTitle() {
+        return offerTitle;
+    }
+
+    public void setOfferTitle(String offerTitle) {
+        this.offerTitle = offerTitle;
     }
 
     public String getStudentImage() {

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -37,6 +38,7 @@ public class UserController {
         dto.setName(u.getName());
         dto.setEmail(u.getEmail());
         dto.setProfileImage(u.getProfileImage());
+        dto.setDescription(u.getDescription());
         dto.setStatus(u.getStatus());
         dto.setRole(u.getRole());
 
@@ -94,13 +96,19 @@ public class UserController {
 
             // Verificamos que la contraseña actual coincida con la encriptada en DB
             if (passwordEncoder.matches(currentPassword, usuario.getPassword())) {
+                // Validar fortaleza de la nueva contraseña
+                String passwordValidationError = validatePassword(newPassword);
+                if (passwordValidationError != null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", passwordValidationError));
+                }
+
                 // Encriptamos la nueva contraseña y la guardamos
                 usuario.setPassword(passwordEncoder.encode(newPassword));
                 usuarioRepository.save(usuario);
                 return ResponseEntity.ok().build();
             } else {
                 return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
-                        .body("La contraseña actual es incorrecta");
+                        .body(Map.of("error", "La contraseña actual es incorrecta"));
             }
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -110,6 +118,7 @@ public class UserController {
         return usuarioRepository.findById(id).map(usuario -> {
             if (data.containsKey("name")) usuario.setName(data.get("name"));
             if (data.containsKey("profileImage")) usuario.setProfileImage(data.get("profileImage"));
+            if (data.containsKey("description")) usuario.setDescription(data.get("description"));
             usuarioRepository.save(usuario);
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
@@ -195,5 +204,31 @@ public class UserController {
             usuarioRepository.save(usuario);
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private String validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            return "La contraseña debe tener al menos 8 caracteres.";
+        }
+
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        boolean hasSymbol = false;
+        String symbols = "!@#$%^&*()-_=+[]{}|;:'\",.<>/?~";
+
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            else if (Character.isLowerCase(c)) hasLower = true;
+            else if (Character.isDigit(c)) hasDigit = true;
+            else if (symbols.indexOf(c) >= 0) hasSymbol = true;
+        }
+
+        if (!hasUpper) return "La contraseña debe contener al menos una letra mayúscula.";
+        if (!hasLower) return "La contraseña debe contener al menos una letra minúscula.";
+        if (!hasDigit) return "La contraseña debe contener al menos un número.";
+        if (!hasSymbol) return "La contraseña debe contener al menos un símbolo.";
+
+        return null; // Sin errores
     }
 }

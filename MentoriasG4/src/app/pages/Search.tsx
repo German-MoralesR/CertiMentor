@@ -303,9 +303,9 @@ export default function Search() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold text-lg text-gray-900 mb-1">
-                      {mentor.mentorName}
+                      {mentor.title}
                     </h3>
-                    <p className="text-sm text-gray-600">{mentor.title}</p>
+                    <p className="text-sm text-gray-600">{mentor.mentorName}</p>
                   </div>
                 </div>
 

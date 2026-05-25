@@ -19,6 +19,8 @@ export interface ScheduledMentorship {
   mentorId: number;
   offerId: number;
   studentId: number;
+  offerTitle?: string;
+  mentorImage?: string;
   mentorName: string;
   studentName: string;
   studentImage?: string;
@@ -224,7 +226,7 @@ export default function StudentSchedule() {
                         {/* Foto del Mentor */}
                         <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                           <ImageWithFallback
-                            src={session.studentImage || ""}
+                            src={session.mentorImage || ""}
                             alt={session.mentorName}
                             className="w-full h-full object-cover"
                           />
@@ -233,7 +235,7 @@ export default function StudentSchedule() {
                         {/* Información */}
                         <div className="flex-1">
                           <h3 className="font-semibold text-lg text-gray-900 mb-1">
-                            {session.topic}
+                            {session.offerTitle || "Sesión de Mentoría"}
                           </h3>
                           <p className="text-gray-600 mb-3">
                             con <strong>{session.mentorName}</strong>
@@ -511,7 +513,7 @@ export default function StudentSchedule() {
               <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
                 <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden">
                   <ImageWithFallback
-                    src={sessionDetail.studentImage || ""}
+                    src={sessionDetail.mentorImage || ""}
                     alt={sessionDetail.mentorName}
                     className="w-full h-full object-cover"
                   />
@@ -528,9 +530,17 @@ export default function StudentSchedule() {
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tema
+                    Mentoría
                   </label>
                   <p className="text-gray-900 font-semibold">
+                    {sessionDetail.offerTitle || "Sesión de Mentoría"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tus Dudas / Propósito
+                  </label>
+                  <p className="text-gray-900 font-medium">
                     {sessionDetail.topic}
                   </p>
                 </div>

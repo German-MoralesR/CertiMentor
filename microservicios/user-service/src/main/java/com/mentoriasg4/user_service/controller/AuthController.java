@@ -87,6 +87,12 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El correo electrónico ya está registrado."));
         }
 
+        // 1.1. Validar fortaleza de la contraseña
+        String passwordValidationError = validatePassword(passwordStr);
+        if (passwordValidationError != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", passwordValidationError));
+        }
+
         // 2. Buscar el rol de "ESTUDIANTE"
         Rol rolEstudiante = rolRepository.findById(3)
                 .orElseThrow(() -> new RuntimeException("Error: Rol de Estudiante no encontrado."));
@@ -113,5 +119,31 @@ public class AuthController {
 
         // 5. Devolver una respuesta exitosa
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioGuardado);
+    }
+
+    private String validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            return "La contraseña debe tener al menos 8 caracteres.";
+        }
+
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        boolean hasSymbol = false;
+        String symbols = "!@#$%^&*()-_=+[]{}|;:'\",.<>/?~";
+
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            else if (Character.isLowerCase(c)) hasLower = true;
+            else if (Character.isDigit(c)) hasDigit = true;
+            else if (symbols.indexOf(c) >= 0) hasSymbol = true;
+        }
+
+        if (!hasUpper) return "La contraseña debe contener al menos una letra mayúscula.";
+        if (!hasLower) return "La contraseña debe contener al menos una letra minúscula.";
+        if (!hasDigit) return "La contraseña debe contener al menos un número.";
+        if (!hasSymbol) return "La contraseña debe contener al menos un símbolo.";
+
+        return null; // Sin errores
     }
 }

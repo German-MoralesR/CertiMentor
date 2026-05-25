@@ -9,6 +9,7 @@ public class UsuarioDto {
     private String name;
     private String email;
     private String profileImage;
+    private String description;
     private String status;
     private Rol role;
     private Boolean mentorRequest;

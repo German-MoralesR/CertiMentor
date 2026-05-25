@@ -19,6 +19,8 @@ export interface ScheduledMentorship {
   id: number;
   mentorId: number;
   studentId: number;
+  offerTitle?: string;
+  mentorImage?: string;
   mentorName: string;
   studentName: string;
   studentImage?: string;
@@ -243,11 +245,12 @@ export default function MentorSchedule() {
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900">
                                 {mentorship.date === todayStr && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full mr-2">HOY</span>}
-                                {mentorship.topic}
+                                {mentorship.offerTitle || "Sesión de Mentoría"}
                               </h4>
-                              <p className="text-gray-600 text-sm mb-2">
+                              <p className="text-gray-600 text-sm mb-1">
                                 {mentorship.studentName}
                               </p>
+                              <p className="text-gray-500 text-xs italic mb-2">"{mentorship.topic}"</p>
                               <div className="flex gap-4 flex-wrap text-sm">
                                 <div className="flex items-center gap-1 text-gray-600">
                                   <Calendar className="w-4 h-4" />
@@ -549,7 +552,15 @@ export default function MentorSchedule() {
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tema
+                    Mentoría a impartir
+                  </label>
+                  <p className="text-gray-900 font-semibold">
+                    {mentorshipDetail.offerTitle || "Sesión de Mentoría"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dudas del estudiante
                   </label>
                   <p className="text-gray-900 font-semibold">
                     {mentorshipDetail.topic}

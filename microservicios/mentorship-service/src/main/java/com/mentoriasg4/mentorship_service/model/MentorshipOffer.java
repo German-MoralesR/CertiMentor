@@ -18,6 +18,9 @@ public class MentorshipOffer {
     private String mentorName; 
 
     private String title;
+
+    @Column(length = 2000)
+    private String description;
     
     @Column(length = 1000)
     private String image;
@@ -77,6 +80,14 @@ public class MentorshipOffer {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getImage() {
