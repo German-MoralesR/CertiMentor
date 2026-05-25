@@ -29,7 +29,7 @@ export interface ScheduledMentorship {
   time: string;
   duration: number;
   price: number;
-  status: "pendiente" | "aprobada" | "completada" | "cancelada";
+  status: "pendiente" | "aprobada" | "completada" | "cancelada" | "esperando_confirmacion" | "disputada";
   platformLink?: string;
 }
 
@@ -85,7 +85,7 @@ export default function MentorSchedule() {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const upcomingMentorships = mentorships.filter(
-    (m) => m.status === "pendiente" || m.status === "aprobada"
+    (m) => ["pendiente", "aprobada", "esperando_confirmacion", "disputada"].includes(m.status)
   ).sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
 
   const completedMentorships = mentorships.filter((m) => m.status === "completada");
@@ -140,20 +140,20 @@ export default function MentorSchedule() {
     }
   };
 
-  const handleCompleteSession = async () => {
+  const handleFinishSession = async () => {
     if (!mentorshipDetail) return;
     try {
       const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${mentorshipDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: "completada", platformLink: mentorshipDetail.platformLink }),
+        body: JSON.stringify({ status: "esperando_confirmacion" }),
       });
       if (response.ok) {
         await fetchMentorSessions();
         setShowDetailModal(null);
       }
     } catch (error) {
-      console.error("Error completing session:", error);
+      console.error("Error finishing session:", error);
     }
   };
 
@@ -283,9 +283,13 @@ export default function MentorSchedule() {
                                   ? "bg-red-100 text-red-700"
                                   : mentorship.status === "aprobada"
                                   ? "bg-green-100 text-green-700"
-                                  : "bg-yellow-100 text-yellow-700"
+                                  : mentorship.status === "pendiente"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                : mentorship.status === "esperando_confirmacion"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-orange-100 text-orange-700"
                               }`}>
-                                {mentorship.status === "cancelada" ? "Cancelada" : mentorship.status === "aprobada" ? "Aprobada" : "Por aprobar"}
+                                {mentorship.status.replace("_", " ")}
                               </span>
                             </div>
                           </div>
@@ -694,18 +698,21 @@ export default function MentorSchedule() {
                   </button>
                 </>
               )}
-                  {mentorshipDetail.status === "aprobada" && (
+                  {mentorshipDetail.status === "aprobada" && new Date(mentorshipDetail.date + "T" + mentorshipDetail.time) < new Date() && (
                     <>
                       <button onClick={handleRejectSession} className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium">
                         Cancelar Sesión
                       </button>
-                      <button onClick={handleSaveLink} disabled={!platformLinkInput} className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
+                      <button onClick={handleSaveLink} className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
                         Actualizar Link
                       </button>
-                      <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" /> Marcar Completada
+                      <button onClick={handleFinishSession} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" /> Finalizar Sesión
                       </button>
                     </>
+                  )}
+                  {mentorshipDetail.status === "esperando_confirmacion" && (
+                    <div className="w-full text-center p-3 bg-blue-50 text-blue-700 rounded-lg font-medium">Esperando confirmación del estudiante...</div>
                   )}
             </div>
           </div>

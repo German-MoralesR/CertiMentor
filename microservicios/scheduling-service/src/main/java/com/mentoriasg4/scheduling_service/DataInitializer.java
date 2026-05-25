@@ -142,9 +142,74 @@ public class DataInitializer implements CommandLineRunner {
             session8.setStatus("completada");
             session8.setPlatformLink("https://meet.google.com/xyz-abcd-efg");
 
+            MentorshipSession session9 = new MentorshipSession();
+            session9.setMentorId(3L); // Laura Gómez
+            session9.setOfferId(6L);
+            session9.setStudentId(10L); // María Pinto
+            session9.setMentorName("Laura Gómez");
+            session9.setMentorImage("https://randomuser.me/api/portraits/women/44.jpg");
+            session9.setOfferTitle("React Intermedio - Avanzado");
+            session9.setStudentImage("https://randomuser.me/api/portraits/women/12.jpg");
+            session9.setTopic("Revisión de mi proyecto final de React.");
+            session9.setDate("2026-05-20"); // Past date
+            session9.setTime("17:00");
+            session9.setDuration(60);
+            session9.setPrice(10000.0);
+            session9.setStatus("aprobada");
+            session9.setPlatformLink("https://meet.google.com/lmn-opqr-stu");
+
+            MentorshipSession session10 = new MentorshipSession();
+            session10.setMentorId(4L); // David Silva
+            session10.setOfferId(7L);
+            session10.setStudentId(6L); // Estudiante Aplicado
+            session10.setMentorName("David Silva");
+            session10.setMentorImage("https://randomuser.me/api/portraits/men/67.jpg");
+            session10.setOfferTitle("DevOps Essentials");
+            session10.setStudentImage("https://randomuser.me/api/portraits/men/75.jpg");
+            session10.setTopic("¿Cómo dockerizar una aplicación de Node.js?");
+            session10.setDate("2026-05-21"); // Past date
+            session10.setTime("11:00");
+            session10.setDuration(45);
+            session10.setPrice(18000.0);
+            session10.setStatus("esperando_confirmacion");
+            session10.setPlatformLink("https://meet.google.com/vwx-yzab-cde");
+
+            MentorshipSession session11 = new MentorshipSession();
+            session11.setMentorId(5L); // Ana Martínez
+            session11.setOfferId(4L);
+            session11.setStudentId(7L); // Carlos Rodríguez
+            session11.setMentorName("Ana Martínez");
+            session11.setMentorImage("https://randomuser.me/api/portraits/women/68.jpg");
+            session11.setOfferTitle("Data Scientist & Machine Learning");
+            session11.setTopic("El mentor no se presentó a la sesión.");
+            session11.setDate("2026-05-18"); // Past date
+            session11.setTime("10:00");
+            session11.setDuration(30);
+            session11.setPrice(20000.0);
+            session11.setStatus("disputada");
+            session11.setPlatformLink("https://meet.google.com/fgh-ijkl-mno");
+
+            // Sesión "trampa" en el pasado para probar el botón "Finalizar"
+            MentorshipSession session12 = new MentorshipSession();
+            session12.setMentorId(2L); // Mentor Experto (mentor@mentorias.com)
+            session12.setOfferId(1L);
+            session12.setStudentId(6L); // Estudiante Aplicado (estudiante@mentorias.com)
+            session12.setMentorName("Mentor Experto");
+            session12.setMentorImage("https://randomuser.me/api/portraits/men/45.jpg");
+            session12.setOfferTitle("Senior Full Stack Developer");
+            session12.setStudentImage("https://randomuser.me/api/portraits/men/75.jpg");
+            session12.setTopic("Revisión de flujo de pagos (Prueba)");
+            session12.setDate("2026-05-15"); // Fecha intencionalmente en el pasado
+            session12.setTime("10:00");
+            session12.setDuration(30);
+            session12.setPrice(15000.0);
+            session12.setStatus("aprobada");
+            session12.setPlatformLink("https://meet.google.com/test-flow");
+
             repository.saveAll(List.of(
                 session1, session2, session3, session4, 
-                session5, session6, session7, session8
+                session5, session6, session7, session8,
+                session9, session10, session11, session12
             ));
             System.out.println("Sesiones de prueba inicializadas.");
         }

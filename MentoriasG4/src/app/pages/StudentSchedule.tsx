@@ -29,7 +29,7 @@ export interface ScheduledMentorship {
   time: string;
   duration: number;
   price: number;
-  status: "pendiente" | "aprobada" | "completada" | "cancelada";
+  status: "pendiente" | "aprobada" | "completada" | "cancelada" | "esperando_confirmacion" | "disputada";
   platformLink?: string;
 }
 
@@ -69,26 +69,27 @@ export default function StudentSchedule() {
 
   const [studentSessions, setStudentSessions] = useState<ScheduledMentorship[]>([]);
 
-  useEffect(() => {
-    const fetchSessions = async () => {
-      if (!currentStudentId) return;
-      try {
-        const response = await fetch(`http://localhost:8083/api/mentorship-sessions/student/${currentStudentId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setStudentSessions(data);
-        }
-      } catch (error) {
-        console.error("Error fetching student sessions:", error);
+  const fetchSessions = async () => {
+    if (!currentStudentId) return;
+    try {
+      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/student/${currentStudentId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStudentSessions(data);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching student sessions:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchSessions();
   }, [currentStudentId]);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
   const upcomingSessions = studentSessions.filter(
-    (s) => s.status === "pendiente" || s.status === "aprobada"
+    (s) => ["pendiente", "aprobada", "esperando_confirmacion", "disputada"].includes(s.status)
   );
 
   const completedSessions = studentSessions.filter((s) => s.status === "completada");
@@ -126,6 +127,25 @@ export default function StudentSchedule() {
       });
       if (response.ok) {
         setStudentSessions(studentSessions.map(s => s.id === sessionDetail.id ? { ...s, status: "completada" } : s));
+      }
+    } catch (error) {
+      console.error("Error completing session:", error);
+    }
+  };
+
+  const handleDisputeSession = async () => {
+    if (!sessionDetail) return;
+    const reason = prompt("Por favor, describe brevemente por qué estás abriendo una disputa (ej: el mentor no se presentó).");
+    if (!reason) return;
+    try {
+      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: "disputada", topic: sessionDetail.topic + ` [DISPUTA: ${reason}]` }),
+      });
+      if (response.ok) {
+        await fetchSessions(); // Recargar datos
+        setShowDetailModal(null);
       }
     } catch (error) {
       console.error("Error completing session:", error);
@@ -278,9 +298,13 @@ export default function StudentSchedule() {
                             ? "bg-red-100 text-red-700"
                             : session.status === "aprobada"
                             ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
+                            : session.status === "pendiente"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : session.status === "esperando_confirmacion"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-orange-100 text-orange-700"
                         }`}>
-                          {session.status === "cancelada" ? "Cancelada" : session.status === "aprobada" ? "Aprobada" : "Por aprobar"}
+                          {session.status.replace("_", " ")}
                         </span>
                       </div>
                     </div>
@@ -644,19 +668,25 @@ export default function StudentSchedule() {
               >
                 Cerrar
               </button>
-              {sessionDetail.status === "aprobada" && sessionDetail.platformLink && (
+              {sessionDetail.status === "esperando_confirmacion" && (
                 <>
-                  <a href={sessionDetail.platformLink} target="_blank" rel="noopener noreferrer" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center">
-                    <Video className="w-4 h-4" />
-                    Entrar
-                  </a>
-                  <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2">
+                  <button onClick={handleDisputeSession} className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium flex items-center justify-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Reportar Problema
+                  </button>
+                  <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
-                    Finalizar Sesión
+                    Confirmar Mentoría
                   </button>
                 </>
               )}
-              {sessionDetail.status === "pendiente" && (
+              {sessionDetail.status === "aprobada" && sessionDetail.platformLink && (
+                <a href={sessionDetail.platformLink} target="_blank" rel="noopener noreferrer" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center">
+                  <Video className="w-4 h-4" />
+                  Entrar a la Sesión
+                </a>
+              )}
+              {(sessionDetail.status === "pendiente" || (sessionDetail.status === "aprobada" && !sessionDetail.platformLink)) && (
                 <button disabled className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed">
                   <Clock className="w-4 h-4" />
                   Esperando Link
