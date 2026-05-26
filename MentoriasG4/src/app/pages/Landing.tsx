@@ -16,7 +16,7 @@ export default function Landing() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-semibold text-gray-900">MicroMentorías</span>
+            <span className="text-xl font-semibold text-gray-900">CertiMentor</span>
           </div>
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
@@ -248,7 +248,7 @@ export default function Landing() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                ¿Por qué MicroMentorías?
+                ¿Por qué CertiMentor?
               </h2>
               <div className="space-y-4">
                 <div className="flex gap-3">
@@ -335,7 +335,7 @@ export default function Landing() {
       <footer className="border-t bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2026 MicroMentorías. Todos los derechos reservados.</p>
+            <p>&copy; 2026 CertiMentor. Todos los derechos reservados.</p>
           </div>
         </div>
       </footer>

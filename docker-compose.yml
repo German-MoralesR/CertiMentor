@@ -1,0 +1,40 @@
+services:
+  mysql-db:
+    # Imagen de MySQL 8.0 - detecta automáticamente ARM64 en Mac
+    image: mysql:8.0
+    container_name: mentoriasg4-mysql
+    restart: unless-stopped
+    
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_HOST: '%'
+      # Variables para crear las bases de datos al iniciar
+      MYSQL_DATABASE: db_user_service
+      
+    command: --default-authentication-plugin=mysql_native_password
+    
+    ports:
+      - "3306:3306"
+    
+    volumes:
+      # Volumen para persistencia de datos
+      - mysql_data:/var/lib/mysql
+      # Script SQL para crear las bases de datos
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    
+    networks:
+      - mentoriasg4-network
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  mentoriasg4-network:
+    driver: bridge

@@ -1,0 +1,29 @@
+# Docker
+.env.local
+.env.*.local
+
+# MySQL Data Volume
+mysql_data/
+
+# Node modules
+node_modules/
+dist/
+
+# Java
+*.class
+*.jar
+target/
+*.jar.original
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
