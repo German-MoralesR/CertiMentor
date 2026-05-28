@@ -25,7 +25,8 @@ export interface MentorshipOffer {
 
 interface FormData {
   title: string;
-  image: string;
+  imagePreview: string;
+  imageFile: File | null;
   description: string;
   skills: string;
   price: string; // Se guarda como string en el estado para facilitar el input
@@ -64,7 +65,8 @@ export default function MentorDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     title: "",
-    image: "",
+    imagePreview: "",
+    imageFile: null,
     description: "",
     skills: "",
     price: "",
@@ -74,6 +76,7 @@ export default function MentorDashboard() {
     availableDates: [],
     availability: "Disponible",
   });
+  
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [validationError, setValidationError] = useState("");
@@ -150,13 +153,30 @@ export default function MentorDashboard() {
     setValidationError("");
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((prev) => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: typeof reader.result === "string" ? reader.result : prev.imagePreview,
+      }));
+    };
+    reader.readAsDataURL(file);
+    setValidationError("");
+  };
+
   const validateForm = () => {
     if (!formData.title.trim()) {
       setValidationError("El título profesional es requerido");
       return false;
     }
-    if (!formData.image.trim()) {
-      setValidationError("La URL de la imagen es requerida");
+    if (!formData.imagePreview.trim()) {
+      setValidationError("Debes subir una imagen desde tu PC");
       return false;
     }
     if (!formData.description.trim()) {
@@ -183,10 +203,10 @@ export default function MentorDashboard() {
 
     const payload = {
       mentorId: currentMentorId,
-      mentorName: user?.name || "Mentor Experto", 
+      mentorName: user?.name || "Mentor Experto",
       title: formData.title,
       description: formData.description,
-      image: formData.image,
+      image: formData.imagePreview,
       skills: formData.skills.split(",").map((s) => s.trim()).filter((s) => s),
       price: formData.isGratis ? 0 : parseInt(formData.price) || 0,
       timeStart: formData.timeStart,
@@ -224,7 +244,8 @@ export default function MentorDashboard() {
   const handleEdit = (offer: MentorshipOffer) => {
     setFormData({
       title: offer.title,
-      image: offer.image,
+      imagePreview: offer.image,
+      imageFile: null,
       description: offer.description || "",
       skills: offer.skills.join(", "),
       price: offer.price === 0 ? "" : offer.price.toString(),
@@ -258,7 +279,8 @@ export default function MentorDashboard() {
     setEditingId(null);
     setFormData({
       title: "",
-      image: "",
+      imagePreview: "",
+      imageFile: null,
       description: "",
       skills: "",
       price: "",
@@ -662,25 +684,26 @@ export default function MentorDashboard() {
                 {/* Imagen */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL de la Imagen
+                    Imagen de la Mentoría
                   </label>
                   <input
-                    type="text"
-                    name="image"
-                    value={formData.image}
-                    onChange={handleInputChange}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-2"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-2 bg-white"
                   />
-                  {formData.image && (
+                  <p className="text-xs text-gray-500 mb-2">
+                    Sube una imagen desde tu PC. Se guardará en la base de datos vinculada a esta mentoría.
+                  </p>
+                  {formData.imagePreview && (
                     <div className="text-sm text-gray-600 mb-2">
                       Vista previa:
                     </div>
                   )}
-                  {formData.image && (
+                  {formData.imagePreview && (
                     <div className="relative h-40 bg-gray-100 rounded-lg overflow-hidden mb-4">
                       <ImageWithFallback
-                        src={formData.image}
+                        src={formData.imagePreview}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />

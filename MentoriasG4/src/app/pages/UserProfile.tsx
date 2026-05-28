@@ -152,6 +152,21 @@ export default function UserProfile() {
     }
   };
 
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfileData(prev => ({
+        ...prev,
+        profileImage: typeof reader.result === "string" ? reader.result : prev.profileImage
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -487,15 +502,19 @@ export default function UserProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL Foto de Perfil</label>
-                <input 
-                  type="url" 
-                  value={profileData.profileImage}
-                  onChange={(e) => setProfileData({...profileData, profileImage: e.target.value})}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfileImageChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">Ingresa el link directo a una imagen.</p>
+                <p className="text-xs text-gray-500 mt-1">Sube una imagen desde tu PC.</p>
+                {profileData.profileImage && (
+                  <div className="mt-3 h-28 w-28 rounded-full overflow-hidden border border-gray-200">
+                    <img src={profileData.profileImage} alt="Vista previa" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Acerca de mí</label>

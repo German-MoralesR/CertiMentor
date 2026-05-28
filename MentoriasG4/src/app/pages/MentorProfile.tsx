@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+  import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ export interface MentorshipOffer {
   sessionsCompleted: number;
   rating: number;
   reviews: number;
+  status?: string;
   timeStart: string;
   timeEnd: string;
   availability: string;
@@ -54,6 +55,26 @@ export default function MentorProfile() {
   const [bookedSlots, setBookedSlots] = useState<{date: string, time: string}[]>([]);
   const [bookingNotes, setBookingNotes] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
+  const isOfferEliminada = mentor?.status === "eliminada";
+
+  const timeSlots = useMemo(() => {
+    if (!mentor?.timeStart || !mentor?.timeEnd) return [];
+    const [startH, startM] = mentor.timeStart.split(":").map(Number);
+    const [endH, endM] = mentor.timeEnd.split(":").map(Number);
+    if ([startH, startM, endH, endM].some((n) => Number.isNaN(n))) return [];
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    if (endMinutes <= startMinutes) return [];
+
+    const slots: string[] = [];
+    const intervalMinutes = 60;
+    for (let current = startMinutes; current + intervalMinutes <= endMinutes; current += intervalMinutes) {
+      const hours = Math.floor(current / 60).toString().padStart(2, "0");
+      const minutes = (current % 60).toString().padStart(2, "0");
+      slots.push(`${hours}:${minutes}`);
+    }
+    return slots;
+  }, [mentor?.timeStart, mentor?.timeEnd]);
 
   useEffect(() => {
     if (id) {
@@ -94,6 +115,10 @@ export default function MentorProfile() {
   }, [id]);
 
   const handleBooking = () => {
+    if (isOfferEliminada) {
+      alert("Esta mentoría ya no está disponible.");
+      return;
+    }
     if (!selectedDate || !selectedSlot) {
       alert("Por favor selecciona un día y horario");
       return;
@@ -324,80 +349,94 @@ export default function MentorProfile() {
                 </div>
               </div>
 
-              {/* Day Selection */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Selecciona un día
-                </label>
-                <div className="space-y-2">
-                  {mentor.availableDates.map((date) => (
-                    <button
-                      key={date}
-                      onClick={() => {
-                        setSelectedDate(date);
-                        setSelectedSlot(null);
-                      }}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
-                        selectedDate === date
-                          ? "border-indigo-600 bg-indigo-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-600" />
-                        <span className="font-medium text-gray-900">
-                          {new Intl.DateTimeFormat("es-ES", { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date(date + "T00:00"))}
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        Disponible
-                      </span>
-                    </button>
-                  ))}
+              {isOfferEliminada ? (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  Esta mentoría ya finalizó y no está disponible para agendar.
                 </div>
-              </div>
-
-              {/* Time Slots */}
-              {selectedDate && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Horarios disponibles
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['10:00', '11:00', '14:00', '15:00', '16:00'].map((slot) => {
-                      const isBooked = bookedSlots.some(b => b.date === selectedDate && b.time === slot);
-                      return (
-                      <button
-                        key={slot}
-                        onClick={() => !isBooked && setSelectedSlot(slot)}
-                        disabled={isBooked}
-                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                          isBooked
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed line-through opacity-60"
-                            : selectedSlot === slot
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {slot}
-                      </button>
-                    )})}
+              ) : (
+                <>
+                  {/* Day Selection */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Selecciona un día
+                    </label>
+                    <div className="space-y-2">
+                      {mentor.availableDates.map((date) => (
+                        <button
+                          key={date}
+                          onClick={() => {
+                            setSelectedDate(date);
+                            setSelectedSlot(null);
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                            selectedDate === date
+                              ? "border-indigo-600 bg-indigo-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-600" />
+                            <span className="font-medium text-gray-900">
+                              {new Intl.DateTimeFormat("es-ES", { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date(date + "T00:00"))}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            Disponible
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* Book Button */}
-              <button
-                onClick={handleBooking}
-                disabled={!selectedDate || !selectedSlot}
-                className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                  selectedDate && selectedSlot
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                Reservar sesión
-              </button>
+                  {/* Time Slots */}
+                  {selectedDate && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Horarios disponibles
+                      </label>
+                      {timeSlots.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {timeSlots.map((slot) => {
+                            const isBooked = bookedSlots.some(b => b.date === selectedDate && b.time === slot);
+                            return (
+                            <button
+                              key={slot}
+                              onClick={() => !isBooked && setSelectedSlot(slot)}
+                              disabled={isBooked}
+                              className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                                isBooked
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed line-through opacity-60"
+                                  : selectedSlot === slot
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          )})}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          No hay horarios disponibles para el rango seleccionado.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Book Button */}
+                  <button
+                    onClick={handleBooking}
+                    disabled={!selectedDate || !selectedSlot}
+                    className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                      selectedDate && selectedSlot
+                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    Reservar sesión
+                  </button>
+                </>
+              )}
 
               {/* Contact */}
               <button className="w-full mt-3 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:border-gray-400 transition-colors flex items-center justify-center gap-2">

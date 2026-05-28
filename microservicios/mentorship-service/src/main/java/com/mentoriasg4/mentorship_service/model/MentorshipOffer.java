@@ -22,7 +22,8 @@ public class MentorshipOffer {
     @Column(length = 2000)
     private String description;
     
-    @Column(length = 1000)
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String image;
     private Integer price; // Guardado como valor numérico CLP (ej: 15000) o 0 para gratis
 

@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
             Rol rolMentor = rolRepository.findById(2).orElseThrow();
             Rol rolEstudiante = rolRepository.findById(3).orElseThrow();
 
-            String defaultPassword = passwordEncoder.encode("123123");
+            String defaultPassword = passwordEncoder.encode("123456");
 
             // 1. Admin (ID 1)
             Usuario admin = new Usuario();

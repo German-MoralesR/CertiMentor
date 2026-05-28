@@ -84,7 +84,7 @@ public class AuthController {
 
         // 1. Verificar si el email ya existe
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El correo electrónico ya está registrado."));
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "este correo ya está registrado"));
         }
 
         // 1.1. Validar fortaleza de la contraseña

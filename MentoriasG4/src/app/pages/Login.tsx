@@ -262,6 +262,12 @@ export default function Login() {
                   placeholder="••••••••"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
+                {mode === "register" && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    La contraseña debe tener al menos 8 caracteres, una
+                    mayúscula, una minúscula, un número y un símbolo.
+                  </p>
+                )}
               </div>
 
           {mode === "register" && (

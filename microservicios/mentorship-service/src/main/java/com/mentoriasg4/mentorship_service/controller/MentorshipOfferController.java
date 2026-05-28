@@ -3,10 +3,12 @@ package com.mentoriasg4.mentorship_service.controller;
 import com.mentoriasg4.mentorship_service.model.MentorshipOffer;
 import com.mentoriasg4.mentorship_service.service.MentorshipOfferService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/mentorship-offers")
@@ -34,8 +36,11 @@ public class MentorshipOfferController {
     }
 
     @PostMapping
-    public MentorshipOffer create(@RequestBody MentorshipOffer offer) {
-        return service.createOffer(offer);
+    public ResponseEntity<?> create(@RequestBody MentorshipOffer offer) {
+        if (offer.getImage() == null || offer.getImage().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La imagen es requerida."));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createOffer(offer));
     }
 
     @PutMapping("/{id}")
@@ -56,4 +61,5 @@ public class MentorshipOfferController {
         }
         return ResponseEntity.noContent().build();
     }
+
 }

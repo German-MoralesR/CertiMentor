@@ -14,6 +14,7 @@ export interface MentorshipOffer {
   sessionsCompleted: number;
   rating: number;
   reviews: number;
+  status?: string;
   timeStart: string;
   timeEnd: string;
   availability: string;
@@ -127,6 +128,7 @@ export default function Search() {
   };
 
   const filteredMentors = offers.filter((mentor) => {
+    if (mentor.status === "eliminada") return false;
     // Protecciones en caso de que la DB envíe valores nulos
     const name = mentor.mentorName || "";
     const title = mentor.title || "";
