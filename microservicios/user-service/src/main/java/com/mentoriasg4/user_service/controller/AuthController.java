@@ -9,6 +9,9 @@ import com.mentoriasg4.user_service.repository.SolicitudRepository;
 import com.mentoriasg4.user_service.repository.RolRepository;
 import com.mentoriasg4.user_service.repository.UsuarioRepository;
 import com.mentoriasg4.user_service.security.JwtUtil;
+import com.mentoriasg4.user_service.service.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,8 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -42,6 +47,9 @@ public class AuthController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDto loginDto) {
@@ -115,6 +123,12 @@ public class AuthController {
             solicitud.setCertificationCode(registerDto.getCertificationCode());
             solicitud.setInstitution(registerDto.getInstitution());
             solicitudRepository.save(solicitud);
+        }
+
+        try {
+            emailService.sendWelcomeEmail(usuarioGuardado.getEmail(), usuarioGuardado.getName());
+        } catch (Exception ex) {
+            logger.warn("No se pudo enviar correo de bienvenida para {}", usuarioGuardado.getEmail(), ex);
         }
 
         // 5. Devolver una respuesta exitosa
