@@ -15,12 +15,14 @@
         var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
         v.onload = function() {
           window.voiceflow.chat.load({
-            verify: { projectID: 'TU_PROJECT_ID' },
+            verify: { projectID: '6a1892f8855f72123c6c707b' },
             url: 'https://general-runtime.voiceflow.com',
-            versionID: 'production',
+            voice: {
+              url: "https://runtime-api.voiceflow.com"
+            }
           });
         }
-        v.src = "https://cdn.voiceflow.com/widget/bundle.mjs";
+        v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs";
         v.type = "text/javascript";
         s.parentNode.insertBefore(v, s);
       })(document, 'script');

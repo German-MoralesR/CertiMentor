@@ -23,6 +23,11 @@ public class MentorshipOfferController {
         return service.getAllOffers();
     }
 
+    @GetMapping("/search")
+    public List<MentorshipOffer> search(@RequestParam(name = "topic", required = false) String topic) {
+        return service.searchOffersByTopic(topic);
+    }
+
     @GetMapping("/mentor/{mentorId}")
     public List<MentorshipOffer> getByMentor(@PathVariable Long mentorId) {
         return service.getOffersByMentorId(mentorId);

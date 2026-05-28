@@ -32,6 +32,16 @@ public class MentorshipOfferService {
         return offers;
     }
 
+    public List<MentorshipOffer> searchOffersByTopic(String topic) {
+        if (topic == null || topic.isBlank()) {
+            return getAllOffers();
+        }
+        String normalized = topic.trim().toLowerCase();
+        return getAllOffers().stream()
+                .filter(offer -> matchesTopic(offer, normalized))
+                .collect(Collectors.toList());
+    }
+
     public Optional<MentorshipOffer> getOfferById(Long id) {
         return repository.findById(id).map(offer -> {
             if (shouldExpire(offer, LocalDate.now()) && !isEliminada(offer)) {
@@ -106,5 +116,23 @@ public class MentorshipOfferService {
 
     private boolean isEliminada(MentorshipOffer offer) {
         return offer.getStatus() != null && offer.getStatus().equalsIgnoreCase("eliminada");
+    }
+
+    private boolean matchesTopic(MentorshipOffer offer, String normalizedTopic) {
+        return containsNormalized(offer.getTitle(), normalizedTopic)
+                || containsNormalized(offer.getDescription(), normalizedTopic)
+                || containsNormalized(offer.getMentorName(), normalizedTopic)
+                || hasSkillMatch(offer.getSkills(), normalizedTopic);
+    }
+
+    private boolean containsNormalized(String value, String normalizedTopic) {
+        return value != null && value.toLowerCase().contains(normalizedTopic);
+    }
+
+    private boolean hasSkillMatch(List<String> skills, String normalizedTopic) {
+        if (skills == null || skills.isEmpty()) {
+            return false;
+        }
+        return skills.stream().anyMatch(skill -> containsNormalized(skill, normalizedTopic));
     }
 }
