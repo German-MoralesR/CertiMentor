@@ -86,7 +86,7 @@ export default function StudentSchedule() {
     fetchSessions();
   }, [currentStudentId]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toLocaleDateString("en-CA");
 
   const upcomingSessions = studentSessions.filter(
     (s) => ["pendiente", "aprobada", "esperando_confirmacion", "disputada"].includes(s.status)
@@ -269,7 +269,7 @@ export default function StudentSchedule() {
                                   weekday: "short",
                                   day: "numeric",
                                   month: "short",
-                                }).format(new Date(session.date))}
+                                }).format(new Date(session.date + "T00:00:00"))}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 text-gray-600">
@@ -416,7 +416,7 @@ export default function StudentSchedule() {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
-                          }).format(new Date(session.date))}
+                          }).format(new Date(session.date + "T00:00:00"))}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {session.time}
@@ -487,7 +487,7 @@ export default function StudentSchedule() {
                           {session.topic}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-400">
-                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(session.date))}
+                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(session.date + "T00:00:00"))}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-400">{session.time}</td>
                         <td className="px-6 py-4 text-sm text-gray-400">{session.duration} min</td>
@@ -577,7 +577,7 @@ export default function StudentSchedule() {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
-                    }).format(new Date(sessionDetail.date))}
+                    }).format(new Date(sessionDetail.date + "T00:00:00"))}
                   </p>
                 </div>
                 <div>

@@ -10,4 +10,5 @@ import java.util.List;
 public interface MentorshipSessionRepository extends JpaRepository<MentorshipSession, Long> {
     List<MentorshipSession> findByMentorId(Long mentorId);
     List<MentorshipSession> findByStudentId(Long studentId);
+    List<MentorshipSession> findByStatusIgnoreCaseIn(List<String> statuses);
 }

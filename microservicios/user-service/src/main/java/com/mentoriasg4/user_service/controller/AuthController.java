@@ -87,6 +87,7 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterDto registerDto) {
         String email = registerDto.getEmail();
         String name = registerDto.getName();
+        String phoneNumber = registerDto.getPhoneNumber();
         String passwordStr = registerDto.getPassword();
         Boolean mentorRequest = registerDto.getMentorRequest() != null ? registerDto.getMentorRequest() : false;
 
@@ -101,6 +102,10 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", passwordValidationError));
         }
 
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El número de teléfono es obligatorio."));
+        }
+
         // 2. Buscar el rol de "ESTUDIANTE"
         Rol rolEstudiante = rolRepository.findById(3)
                 .orElseThrow(() -> new RuntimeException("Error: Rol de Estudiante no encontrado."));
@@ -109,6 +114,7 @@ public class AuthController {
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setName(name);
         nuevoUsuario.setEmail(email);
+        nuevoUsuario.setPhoneNumber(phoneNumber.trim());
         nuevoUsuario.setPassword(passwordEncoder.encode(passwordStr)); // ¡Contraseña encriptada!
         nuevoUsuario.setRole(rolEstudiante);
 

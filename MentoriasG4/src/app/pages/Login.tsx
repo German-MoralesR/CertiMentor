@@ -10,6 +10,7 @@ export default function Login() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -25,7 +26,7 @@ export default function Login() {
     setSuccessMsg("");
 
     if (mode === "register") {
-      if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword) {
         setError("Por favor completa todos los campos");
         return;
       }
@@ -59,6 +60,7 @@ export default function Login() {
           body: JSON.stringify({ 
             name: fullName, 
             email, 
+            phoneNumber,
             password, 
             mentorRequest,
             certificationCode: mentorRequest ? certificationCode : null,
@@ -71,6 +73,7 @@ export default function Login() {
         setSuccessMsg("¡Cuenta creada exitosamente! Por favor, inicia sesión con tus credenciales.");
         setPassword(""); // Limpiar contraseñas por seguridad
         setConfirmPassword("");
+        setPhoneNumber("");
         setAcceptTerms(false);
         setMentorRequest(false);
         setCertificationCode("");
@@ -246,6 +249,25 @@ export default function Login() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
+
+              {mode === "register" && (
+                <div>
+                  <label
+                    htmlFor="phoneNumber"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Teléfono
+                  </label>
+                  <input
+                    id="phoneNumber"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+56912345678"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              )}
 
               <div>
                 <label

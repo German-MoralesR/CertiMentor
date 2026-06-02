@@ -29,6 +29,9 @@ public class MentorshipSession {
     
     private String platformLink; // Link de Zoom, Meet, etc.
 
+    private boolean mentorReminderSent = false;
+    private boolean studentReminderSent = false;
+
     public MentorshipSession() {}
 
     public Long getId() {
@@ -149,5 +152,21 @@ public class MentorshipSession {
 
     public void setPlatformLink(String platformLink) {
         this.platformLink = platformLink;
+    }
+
+    public boolean isMentorReminderSent() {
+        return mentorReminderSent;
+    }
+
+    public void setMentorReminderSent(boolean mentorReminderSent) {
+        this.mentorReminderSent = mentorReminderSent;
+    }
+
+    public boolean isStudentReminderSent() {
+        return studentReminderSent;
+    }
+
+    public void setStudentReminderSent(boolean studentReminderSent) {
+        this.studentReminderSent = studentReminderSent;
     }
 }

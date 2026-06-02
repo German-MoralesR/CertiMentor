@@ -82,7 +82,7 @@ export default function MentorSchedule() {
     }
   };
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toLocaleDateString("en-CA");
 
   const upcomingMentorships = mentorships.filter(
     (m) => ["pendiente", "aprobada", "esperando_confirmacion", "disputada"].includes(m.status)
@@ -258,7 +258,7 @@ export default function MentorSchedule() {
                                     weekday: "short",
                                     day: "numeric",
                                     month: "short",
-                                  }).format(new Date(mentorship.date))}
+                                  }).format(new Date(mentorship.date + "T00:00:00"))}
                                 </div>
                                 <div className="flex items-center gap-1 text-gray-600">
                                   <Clock className="w-4 h-4" />
@@ -415,7 +415,7 @@ export default function MentorSchedule() {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
-                          }).format(new Date(mentorship.date))}
+                          }).format(new Date(mentorship.date + "T00:00:00"))}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {mentorship.time}
@@ -489,7 +489,7 @@ export default function MentorSchedule() {
                           {mentorship.topic}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-400">
-                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(mentorship.date))}
+                          {new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(mentorship.date + "T00:00:00"))}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-400">{mentorship.time}</td>
                         <td className="px-6 py-4 text-sm text-gray-400">{mentorship.duration} min</td>

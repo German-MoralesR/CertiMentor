@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+    import React, { createContext, useContext, useState, useEffect } from "react";
 
 export interface AuthUser {
   id: number;
@@ -11,7 +11,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, phoneNumber: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -88,12 +88,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return false;
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (
+    name: string,
+    email: string,
+    phoneNumber: string,
+    password: string
+  ): Promise<boolean> => {
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: name, email, password }),
+        body: JSON.stringify({ name, email, phoneNumber, password }),
       });
 
       if (response.ok) {
