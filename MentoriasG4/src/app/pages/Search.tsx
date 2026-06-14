@@ -286,7 +286,7 @@ export default function Search() {
             <div
               key={mentor.id}
               className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/mentor/${mentor.id}`)}
+              onClick={() => navigate(`/oferta/${mentor.id}`)}
             >
               <div className="relative h-48 bg-gray-200">
                 <ImageWithFallback

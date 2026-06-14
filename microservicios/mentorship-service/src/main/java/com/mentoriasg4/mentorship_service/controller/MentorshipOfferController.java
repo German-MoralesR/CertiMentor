@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +47,23 @@ public class MentorshipOfferController {
         if (offer.getImage() == null || offer.getImage().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La imagen es requerida."));
         }
+        
+        // Validación: Evitar fechas en el pasado
+        if (offer.getAvailableDates() != null && !offer.getAvailableDates().isEmpty()) {
+            LocalDate today = LocalDate.now();
+            try {
+                for (String dateStr : offer.getAvailableDates()) {
+                    LocalDate parsedDate = LocalDate.parse(dateStr);
+                    if (parsedDate.isBefore(today)) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(Map.of("error", "No puedes crear una mentoría con fechas de inicio en el pasado (" + dateStr + ")."));
+                    }
+                }
+            } catch (DateTimeParseException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Formato de fecha inválido."));
+            }
+        }
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createOffer(offer));
     }
 

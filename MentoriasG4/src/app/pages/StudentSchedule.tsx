@@ -152,6 +152,25 @@ export default function StudentSchedule() {
     }
   };
 
+  const handleCancelSession = async () => {
+    if (!sessionDetail) return;
+    const reason = prompt("Por favor, describe brevemente por qué deseas cancelar esta sesión.");
+    if (reason === null) return;
+    try {
+      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: "cancelada", topic: sessionDetail.topic + (reason.trim() ? ` [CANCELADA: ${reason.trim()}]` : ' [CANCELADA]') }),
+      });
+      if (response.ok) {
+        await fetchSessions();
+        setShowDetailModal(null);
+      }
+    } catch (error) {
+      console.error("Error cancelling session:", error);
+    }
+  };
+
   const handleSubmitReview = async () => {
     if (!sessionDetail || !currentStudentId) return;
     try {
@@ -685,6 +704,14 @@ export default function StudentSchedule() {
                   <Video className="w-4 h-4" />
                   Entrar a la Sesión
                 </a>
+              )}
+              {(sessionDetail.status === "pendiente" || sessionDetail.status === "aprobada") && (
+                <button
+                  onClick={handleCancelSession}
+                  className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <X className="w-4 h-4" /> Cancelar Sesión
+                </button>
               )}
               {(sessionDetail.status === "pendiente" || (sessionDetail.status === "aprobada" && !sessionDetail.platformLink)) && (
                 <button disabled className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed">

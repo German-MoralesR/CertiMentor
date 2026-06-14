@@ -85,6 +85,8 @@ export default function MentorDashboard() {
   const [realCompletedSessions, setRealCompletedSessions] = useState(0);
   const [confirmDeleteCheckbox, setConfirmDeleteCheckbox] = useState(false);
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const currentMentorId = user?.id;
 
   useEffect(() => {
@@ -796,6 +798,7 @@ export default function MentorDashboard() {
                         <input
                           type="date"
                           value={rangeStart}
+                          min={todayStr}
                           onChange={(e) => setRangeStart(e.target.value)}
                           className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -807,6 +810,7 @@ export default function MentorDashboard() {
                         <input
                           type="date"
                           value={rangeEnd}
+                          min={rangeStart || todayStr}
                           onChange={(e) => setRangeEnd(e.target.value)}
                           className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -830,6 +834,7 @@ export default function MentorDashboard() {
                     <input
                       type="date"
                       id="dateSelector"
+                      min={todayStr}
                       className="w-full px-4 py-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       onChange={(e) => {
                         if (e.target.value) {

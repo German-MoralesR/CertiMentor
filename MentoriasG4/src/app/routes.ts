@@ -8,6 +8,7 @@ import MentorDashboard from "./pages/MentorDashboard";
 import MentorSchedule from "./pages/MentorSchedule";
 import StudentSchedule from "./pages/StudentSchedule";
 import UserProfile from "./pages/UserProfile";
+import MentorshipDetail from "./pages/MentorshipDetail";
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
   {
     path: "/mentor/:id",
     Component: MentorProfile,
+  },
+  {
+    path: "/oferta/:id",
+    Component: MentorshipDetail,
   },
   {
     path: "/admin",
