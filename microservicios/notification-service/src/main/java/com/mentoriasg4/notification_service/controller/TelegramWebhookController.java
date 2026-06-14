@@ -1,7 +1,8 @@
-package com.mentoriasg4.scheduling_service.controller;
+package com.mentoriasg4.notification_service.controller;
 
-import com.mentoriasg4.scheduling_service.model.TelegramUser;
-import com.mentoriasg4.scheduling_service.repository.TelegramUserRepository;
+import com.mentoriasg4.notification_service.model.TelegramUser;
+import com.mentoriasg4.notification_service.repository.TelegramUserRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

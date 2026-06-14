@@ -9,10 +9,10 @@ import com.mentoriasg4.user_service.repository.SolicitudRepository;
 import com.mentoriasg4.user_service.repository.RolRepository;
 import com.mentoriasg4.user_service.repository.UsuarioRepository;
 import com.mentoriasg4.user_service.security.JwtUtil;
-import com.mentoriasg4.user_service.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,8 +20,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -48,8 +53,8 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private EmailService emailService;
+    @Value("${internal.service.token}")
+    private String internalToken;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDto loginDto) {
@@ -131,11 +136,20 @@ public class AuthController {
             solicitudRepository.save(solicitud);
         }
 
-        try {
-            emailService.sendWelcomeEmail(usuarioGuardado.getEmail(), usuarioGuardado.getName());
-        } catch (Exception ex) {
-            logger.warn("No se pudo enviar correo de bienvenida para {}", usuarioGuardado.getEmail(), ex);
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("X-Service-Token", internalToken);
+                
+                Map<String, String> body = Map.of("email", usuarioGuardado.getEmail(), "name", usuarioGuardado.getName());
+                HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+                restTemplate.postForEntity("http://localhost:8085/api/notifications/email/welcome", request, Void.class);
+            } catch (Exception ex) {
+                logger.warn("No se pudo contactar a notification-service para el correo de bienvenida", ex);
+            }
+        });
 
         // 5. Devolver una respuesta exitosa
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioGuardado);

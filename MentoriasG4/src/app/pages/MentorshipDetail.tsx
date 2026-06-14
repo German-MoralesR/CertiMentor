@@ -58,6 +58,8 @@ export default function MentorshipDetail() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingNotes, setBookingNotes] = useState("");
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   const timeSlots = useMemo(() => {
     if (!mentor?.timeStart || !mentor?.timeEnd) return [];
@@ -156,21 +158,26 @@ export default function MentorshipDetail() {
       status: "pendiente",
     };
 
+    setIsBooking(true);
+
     fetch('http://localhost:8083/api/mentorship-sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bookingPayload)
     })
     .then(res => {
+      setIsBooking(false);
       if (res.ok) {
-        alert(`¡Sesión agendada! ${selectedDate} a las ${selectedSlot}`);
         setShowBookingModal(false);
-        navigate("/student-schedule");
+        setBookingSuccess(true);
       } else {
         alert("Error al agendar la sesión.");
       }
     })
-    .catch(err => console.error("Error booking session:", err));
+    .catch(err => {
+      setIsBooking(false);
+      console.error("Error booking session:", err);
+    });
   };
 
   if (!mentor) {
@@ -491,18 +498,46 @@ export default function MentorshipDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowBookingModal(false)}
+                  disabled={isBooking}
                   className="flex-1 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:border-gray-400 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmBooking}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                  disabled={isBooking}
+                  className={`flex-1 py-3 text-white rounded-lg font-medium transition-colors ${
+                    isBooking ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
                 >
-                  Confirmar
+                  {isBooking ? "Confirmando..." : "Confirmar"}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Éxito */}
+      {bookingSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center transform transition-all scale-100">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">¡Reserva Exitosa!</h3>
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Tu sesión ha sido agendada correctamente. En breve recibirás un comprobante y los detalles en tu correo electrónico.
+            </p>
+            <button
+              onClick={() => {
+                setBookingSuccess(false);
+                navigate("/student-schedule");
+              }}
+              className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+            >
+              Ver Mis Sesiones
+            </button>
           </div>
         </div>
       )}

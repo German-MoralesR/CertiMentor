@@ -1,7 +1,8 @@
-package com.mentoriasg4.scheduling_service.repository;
+package com.mentoriasg4.notification_service.repository;
 
-import com.mentoriasg4.scheduling_service.model.TelegramUser;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.mentoriasg4.notification_service.model.TelegramUser;
 
 import java.util.Optional;
 

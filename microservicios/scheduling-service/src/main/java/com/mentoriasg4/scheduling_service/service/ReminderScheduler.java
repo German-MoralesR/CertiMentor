@@ -6,6 +6,10 @@ import com.mentoriasg4.scheduling_service.repository.MentorshipSessionRepository
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +18,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ReminderScheduler {
@@ -23,7 +28,6 @@ public class ReminderScheduler {
 
     private final MentorshipSessionRepository repository;
     private final UserServiceClient userServiceClient;
-    private final TelegramService telegramService;
 
     @Value("${reminders.window-hours:8}")
     private long reminderWindowHours;
@@ -31,14 +35,15 @@ public class ReminderScheduler {
     @Value("${reminders.timezone:America/Santiago}")
     private String reminderTimezone;
 
+    @Value("${internal.service.token}")
+    private String internalToken;
+
     public ReminderScheduler(
         MentorshipSessionRepository repository,
-        UserServiceClient userServiceClient,
-        TelegramService telegramService
+        UserServiceClient userServiceClient
     ) {
         this.repository = repository;
         this.userServiceClient = userServiceClient;
-        this.telegramService = telegramService;
     }
 
     @Scheduled(fixedDelayString = "${reminders.poll-ms:60000}")
@@ -98,7 +103,17 @@ public class ReminderScheduler {
             return false;
         }
         String message = buildMessage(recipient, counterpart, session);
-        return telegramService.sendMessageToPhone(recipient.getPhoneNumber(), message);
+        
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-Service-Token", internalToken);
+            
+            Map<String, String> body = Map.of("phoneNumber", recipient.getPhoneNumber(), "message", message);
+            restTemplate.postForEntity("http://localhost:8085/api/notifications/telegram/send", new HttpEntity<>(body, headers), Void.class);
+            return true;
+        } catch (Exception e) { return false; }
     }
 
     private String buildMessage(UserInfo recipient, UserInfo counterpart, MentorshipSession session) {

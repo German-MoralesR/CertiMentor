@@ -31,6 +31,7 @@ export interface ScheduledMentorship {
   price: number;
   status: "pendiente" | "aprobada" | "completada" | "cancelada" | "esperando_confirmacion" | "disputada";
   platformLink?: string;
+  cancelReason?: string;
 }
 
 export default function StudentSchedule() {
@@ -38,6 +39,8 @@ export default function StudentSchedule() {
   const { user, isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "canceled">("upcoming");
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -105,6 +108,8 @@ export default function StudentSchedule() {
     setReviewSubmitted(false);
     setRating(5);
     setComment("");
+    setIsCanceling(false);
+    setCancelReason("");
     
     if (session && currentStudentId) {
       try {
@@ -152,15 +157,13 @@ export default function StudentSchedule() {
     }
   };
 
-  const handleCancelSession = async () => {
+  const confirmCancelSession = async () => {
     if (!sessionDetail) return;
-    const reason = prompt("Por favor, describe brevemente por qué deseas cancelar esta sesión.");
-    if (reason === null) return;
     try {
       const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: "cancelada", topic: sessionDetail.topic + (reason.trim() ? ` [CANCELADA: ${reason.trim()}]` : ' [CANCELADA]') }),
+        body: JSON.stringify({ status: "cancelada", cancelReason: cancelReason.trim() }),
       });
       if (response.ok) {
         await fetchSessions();
@@ -639,6 +642,14 @@ export default function StudentSchedule() {
                 </div>
               </div>
 
+              {/* Visualización de la Razón de Cancelación */}
+              {sessionDetail.status === "cancelada" && sessionDetail.cancelReason && (
+                <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h3 className="text-sm font-semibold text-red-800 mb-1">Razón de la cancelación:</h3>
+                  <p className="text-sm text-red-700">{sessionDetail.cancelReason}</p>
+                </div>
+              )}
+
               {/* Reseña (solo si está completada y aún no ha sido reseñada) */}
               {sessionDetail.status === "completada" && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
@@ -678,46 +689,82 @@ export default function StudentSchedule() {
                 </p>
               </div>
               )}
+
+              {/* Razón de cancelación */}
+              {isCanceling && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Razón de la cancelación
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Describe brevemente por qué deseas cancelar esta sesión..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows={3}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => handleOpenModal(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cerrar
-              </button>
-              {sessionDetail.status === "esperando_confirmacion" && (
+              {isCanceling ? (
                 <>
-                  <button onClick={handleDisputeSession} className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium flex items-center justify-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    Reportar Problema
+                  <button
+                    onClick={() => { setIsCanceling(false); setCancelReason(""); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Volver
                   </button>
-                  <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Confirmar Mentoría
+                  <button
+                    onClick={confirmCancelSession}
+                    disabled={!cancelReason.trim()}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+                  >
+                    Confirmar Cancelación
                   </button>
                 </>
-              )}
-              {sessionDetail.status === "aprobada" && sessionDetail.platformLink && (
-                <a href={sessionDetail.platformLink} target="_blank" rel="noopener noreferrer" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center">
-                  <Video className="w-4 h-4" />
-                  Entrar a la Sesión
-                </a>
-              )}
-              {(sessionDetail.status === "pendiente" || sessionDetail.status === "aprobada") && (
-                <button
-                  onClick={handleCancelSession}
-                  className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
-                >
-                  <X className="w-4 h-4" /> Cancelar Sesión
-                </button>
-              )}
-              {(sessionDetail.status === "pendiente" || (sessionDetail.status === "aprobada" && !sessionDetail.platformLink)) && (
-                <button disabled className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed">
-                  <Clock className="w-4 h-4" />
-                  Esperando Link
-                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleOpenModal(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cerrar
+                  </button>
+                  {sessionDetail.status === "esperando_confirmacion" && (
+                    <>
+                      <button onClick={handleDisputeSession} className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium flex items-center justify-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Reportar Problema
+                      </button>
+                      <button onClick={handleCompleteSession} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirmar Mentoría
+                      </button>
+                    </>
+                  )}
+                  {sessionDetail.status === "aprobada" && sessionDetail.platformLink && (
+                    <a href={sessionDetail.platformLink} target="_blank" rel="noopener noreferrer" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-center">
+                      <Video className="w-4 h-4" />
+                      Entrar a la Sesión
+                    </a>
+                  )}
+                  {(sessionDetail.status === "pendiente" || sessionDetail.status === "aprobada") && (
+                    <button
+                      onClick={() => setIsCanceling(true)}
+                      className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
+                    >
+                      <X className="w-4 h-4" /> Cancelar Sesión
+                    </button>
+                  )}
+                  {(sessionDetail.status === "pendiente" || (sessionDetail.status === "aprobada" && !sessionDetail.platformLink)) && (
+                    <button disabled className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed">
+                      <Clock className="w-4 h-4" />
+                      Esperando Link
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

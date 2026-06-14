@@ -29,6 +29,9 @@ public class MentorshipSession {
     
     private String platformLink; // Link de Zoom, Meet, etc.
 
+    @Column(length = 1000)
+    private String cancelReason;
+
     private boolean mentorReminderSent = false;
     private boolean studentReminderSent = false;
 
@@ -152,6 +155,14 @@ public class MentorshipSession {
 
     public void setPlatformLink(String platformLink) {
         this.platformLink = platformLink;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 
     public boolean isMentorReminderSent() {

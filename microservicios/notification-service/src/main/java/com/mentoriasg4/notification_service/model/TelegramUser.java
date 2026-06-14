@@ -1,4 +1,4 @@
-package com.mentoriasg4.scheduling_service.model;
+package com.mentoriasg4.notification_service.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

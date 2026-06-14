@@ -31,6 +31,7 @@ export interface ScheduledMentorship {
   price: number;
   status: "pendiente" | "aprobada" | "completada" | "cancelada" | "esperando_confirmacion" | "disputada";
   platformLink?: string;
+  cancelReason?: string;
 }
 
 export default function MentorSchedule() {
@@ -60,6 +61,8 @@ export default function MentorSchedule() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "canceled">("upcoming");
   const [showDetailModal, setShowDetailModal] = useState<number | null>(null);
   const [platformLinkInput, setPlatformLinkInput] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const currentMentorId = user?.id;
 
@@ -102,6 +105,17 @@ export default function MentorSchedule() {
     ? mentorships.find((m) => m.id === showDetailModal)
     : null;
 
+  const handleOpenModal = (mentorship: ScheduledMentorship | null) => {
+    setShowDetailModal(mentorship ? mentorship.id : null);
+    if (mentorship) {
+      setPlatformLinkInput(mentorship.platformLink || "");
+    } else {
+      setPlatformLinkInput("");
+    }
+    setIsRejecting(false);
+    setRejectReason("");
+  };
+
   const handleSaveLink = async () => {
     if (!mentorshipDetail || !platformLinkInput) return;
 
@@ -113,27 +127,25 @@ export default function MentorSchedule() {
       });
       if (response.ok) {
         await fetchMentorSessions(); // Recargar datos
-        setShowDetailModal(null);
+        handleOpenModal(null);
       }
     } catch (error) {
       console.error("Error updating session link:", error);
     }
   };
 
-  const handleRejectSession = async () => {
+  const confirmRejectSession = async () => {
     if (!mentorshipDetail) return;
-    const confirm = window.confirm("¿Estás seguro de que deseas rechazar/cancelar esta sesión?");
-    if (!confirm) return;
 
     try {
       const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${mentorshipDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: "cancelada", platformLink: "" }),
+        body: JSON.stringify({ status: "cancelada", cancelReason: rejectReason.trim(), platformLink: "" }),
       });
       if (response.ok) {
         await fetchMentorSessions(); // Recargar datos
-        setShowDetailModal(null);
+        handleOpenModal(null);
       }
     } catch (error) {
       console.error("Error rejecting session:", error);
@@ -150,7 +162,7 @@ export default function MentorSchedule() {
       });
       if (response.ok) {
         await fetchMentorSessions();
-        setShowDetailModal(null);
+        handleOpenModal(null);
       }
     } catch (error) {
       console.error("Error finishing session:", error);
@@ -297,10 +309,7 @@ export default function MentorSchedule() {
 
                         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                           <button
-                            onClick={() => {
-                              setShowDetailModal(mentorship.id);
-                              setPlatformLinkInput(mentorship.platformLink || "");
-                            }}
+                            onClick={() => handleOpenModal(mentorship)}
                             className="w-full px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm flex items-center justify-center gap-2"
                           >
                             <Eye className="w-4 h-4" />
@@ -471,7 +480,7 @@ export default function MentorSchedule() {
                       <tr
                         key={mentorship.id}
                         className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => setShowDetailModal(mentorship.id)}
+                        onClick={() => handleOpenModal(mentorship)}
                       >
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="flex items-center gap-2">
@@ -521,7 +530,7 @@ export default function MentorSchedule() {
       {/* Modal de Detalles */}
       {showDetailModal && mentorshipDetail && (
         <>
-          <div className="fixed inset-0 bg-transparent z-40" onClick={() => setShowDetailModal(null)}></div>
+          <div className="fixed inset-0 bg-transparent z-40" onClick={() => handleOpenModal(null)}></div>
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
             <div className="bg-white rounded-xl shadow-2xl border-2 border-gray-400 max-w-2xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -529,7 +538,7 @@ export default function MentorSchedule() {
                 Detalles de la Mentoría
               </h2>
               <button
-                onClick={() => setShowDetailModal(null)}
+                onClick={() => handleOpenModal(null)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -624,6 +633,14 @@ export default function MentorSchedule() {
                 </div>
               </div>
 
+              {/* Visualización de la Razón de Cancelación */}
+              {mentorshipDetail.status === "cancelada" && mentorshipDetail.cancelReason && (
+                <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h3 className="text-sm font-semibold text-red-800 mb-1">Razón de la cancelación:</h3>
+                  <p className="text-sm text-red-700">{mentorshipDetail.cancelReason}</p>
+                </div>
+              )}
+
               {/* Enlace de Plataforma */}
               {(mentorshipDetail.status === "pendiente" || mentorshipDetail.status === "aprobada") && (
                 <div className="mb-6">
@@ -671,38 +688,69 @@ export default function MentorSchedule() {
                   </a>
                 </div>
               )}
+
+              {/* Razón de cancelación / rechazo */}
+              {isRejecting && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Razón del rechazo / cancelación
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Indica por qué se rechaza o cancela esta sesión..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows={3}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setShowDetailModal(null);
-                  setPlatformLinkInput("");
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cerrar
-              </button>
-              {mentorshipDetail.status === "pendiente" && (
+              {isRejecting ? (
                 <>
                   <button
-                    onClick={handleRejectSession}
-                    className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
+                    onClick={() => { setIsRejecting(false); setRejectReason(""); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                   >
-                    Rechazar
+                    Volver
                   </button>
                   <button
-                    onClick={handleSaveLink}
-                    disabled={!platformLinkInput}
-                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
+                    onClick={confirmRejectSession}
+                    disabled={!rejectReason.trim()}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
                   >
-                        Aprobar con Link
+                    Confirmar Cancelación
                   </button>
                 </>
-              )}
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleOpenModal(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cerrar
+                  </button>
+                  {mentorshipDetail.status === "pendiente" && (
+                    <>
+                      <button
+                        onClick={() => setIsRejecting(true)}
+                        className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
+                      >
+                        Rechazar
+                      </button>
+                      <button
+                        onClick={handleSaveLink}
+                        disabled={!platformLinkInput}
+                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
+                      >
+                            Aprobar con Link
+                      </button>
+                    </>
+                  )}
                   {mentorshipDetail.status === "aprobada" && new Date(mentorshipDetail.date + "T" + mentorshipDetail.time) < new Date() && (
                     <>
-                      <button onClick={handleRejectSession} className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                      <button onClick={() => setIsRejecting(true)} className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium">
                         Cancelar Sesión
                       </button>
                       <button onClick={handleSaveLink} className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
@@ -716,6 +764,8 @@ export default function MentorSchedule() {
                   {mentorshipDetail.status === "esperando_confirmacion" && (
                     <div className="w-full text-center p-3 bg-blue-50 text-blue-700 rounded-lg font-medium">Esperando confirmación del estudiante...</div>
                   )}
+                </>
+              )}
             </div>
           </div>
         </div>
