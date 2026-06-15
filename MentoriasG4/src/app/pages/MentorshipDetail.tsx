@@ -87,6 +87,14 @@ export default function MentorshipDetail() {
   }, [mentor?.timeStart, mentor?.timeEnd]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "failure") {
+      alert("El pago no pudo ser procesado o fue cancelado. Por favor, intenta de nuevo.");
+      window.history.replaceState(null, "", window.location.pathname); // Limpiar la URL
+    }
+  }, []);
+
+  useEffect(() => {
     if (id) {
       fetch(`http://localhost:8082/api/mentorship-offers/${id}`)
         .then(res => res.json())
@@ -157,6 +165,38 @@ export default function MentorshipDetail() {
       price: mentor.price,
       status: "pendiente",
     };
+
+    // Si la mentoría tiene costo, vamos a Mercado Pago primero
+    if (mentor.price > 0) {
+      setIsBooking(true);
+      
+      // Guardamos la reserva pendiente temporalmente para recuperarla al volver del pago
+      localStorage.setItem("pendingBooking", JSON.stringify(bookingPayload));
+
+      fetch('http://localhost:8086/api/payments/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Mentoría: ${mentor.title}`,
+          price: mentor.price,
+          offerId: mentor.id
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.init_point) {
+          window.location.href = data.init_point; // Redirigimos a la pantalla de pago segura
+        } else {
+          alert("Error al conectar con Mercado Pago");
+          setIsBooking(false);
+        }
+      })
+      .catch(err => {
+        console.error("Error payment:", err);
+        setIsBooking(false);
+      });
+      return; // Detenemos la ejecución aquí para no agendar sin pagar
+    }
 
     setIsBooking(true);
 

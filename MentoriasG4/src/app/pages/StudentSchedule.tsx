@@ -89,6 +89,42 @@ export default function StudentSchedule() {
     fetchSessions();
   }, [currentStudentId]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+
+    if (paymentStatus === "success") {
+      const pendingBookingStr = localStorage.getItem("pendingBooking");
+      if (pendingBookingStr) {
+        const bookingPayload = JSON.parse(pendingBookingStr);
+        localStorage.removeItem("pendingBooking"); // Limpiar para no duplicar
+
+        fetch('http://localhost:8083/api/mentorship-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingPayload)
+        })
+        .then(res => {
+          if (res.ok) {
+            alert("¡Pago procesado con éxito! Tu sesión ha sido agendada.");
+            fetchSessions(); // Recargar la lista de sesiones
+          } else {
+            alert("El pago fue exitoso, pero ocurrió un error al registrar la sesión.");
+          }
+        })
+        .catch(err => console.error("Error creating session after payment:", err))
+        .finally(() => {
+          window.history.replaceState(null, "", window.location.pathname);
+        });
+      } else {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    } else if (paymentStatus === "pending") {
+      alert("Tu pago está siendo procesado. Te avisaremos cuando se confirme.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []); // Se ejecuta solo una vez al montar
+
   const todayStr = new Date().toLocaleDateString("en-CA");
 
   const upcomingSessions = studentSessions.filter(
