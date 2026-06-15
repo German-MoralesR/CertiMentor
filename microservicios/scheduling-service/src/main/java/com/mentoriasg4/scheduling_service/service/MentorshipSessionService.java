@@ -4,6 +4,7 @@ import com.mentoriasg4.scheduling_service.dto.UserInfo;
 import com.mentoriasg4.scheduling_service.model.MentorshipSession;
 import com.mentoriasg4.scheduling_service.repository.MentorshipSessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,6 +25,9 @@ public class MentorshipSessionService {
     
     @Autowired
     private UserServiceClient userServiceClient;
+
+    @Value("${notification.service.url:http://localhost:8085}")
+    private String notificationServiceUrl;
 
     // Método interno para notificar al user-service
     private void sendEmailNotification(String endpoint, MentorshipSession session, String reason) {
@@ -49,7 +53,7 @@ public class MentorshipSessionService {
                 if (reason != null) body.put("reason", reason);
 
                 HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-                restTemplate.postForEntity("http://localhost:8085/api/notifications/email/" + endpoint, request, Void.class);
+                restTemplate.postForEntity(notificationServiceUrl + "/api/notifications/email/" + endpoint, request, Void.class);
             } catch (Exception e) {
                 System.err.println("No se pudo conectar al user-service para enviar correos: " + e.getMessage());
             }

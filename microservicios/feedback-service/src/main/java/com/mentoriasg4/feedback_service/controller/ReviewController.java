@@ -27,6 +27,9 @@ public class ReviewController {
     @Value("${internal.service.token}")
     private String internalToken;
 
+    @Value("{$user.service.base-url:http://localhost:8081}")
+    private String userServiceUrl;
+
     @GetMapping("/mentor/{mentorId}")
     public ResponseEntity<List<ReviewResponseDto>> getReviewsByMentor(@PathVariable Long mentorId) {
         List<Review> reviews = reviewRepository.findByMentorIdOrderByCreatedAtDesc(mentorId);
@@ -57,8 +60,8 @@ public class ReviewController {
 
             try {
                 // Petición HTTP síncrona al endpoint público de user-service
-                String userServiceUrl = "http://localhost:8081/api/users/" + review.getStudentId();
-                ResponseEntity<UserDto> responseTemplate = restTemplate.getForEntity(userServiceUrl, UserDto.class);
+                String url = userServiceUrl + "/api/users/" + review.getStudentId();
+                ResponseEntity<UserDto> responseTemplate = restTemplate.getForEntity(url, UserDto.class);
                 UserDto user = responseTemplate.getBody();
                 
                 if (user != null) {

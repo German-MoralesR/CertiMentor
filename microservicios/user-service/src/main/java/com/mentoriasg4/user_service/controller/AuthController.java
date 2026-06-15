@@ -30,10 +30,12 @@ import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
+    @Value("${notification.service.url:http://localhost:8085}")
+    private String notificationServiceUrl;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -145,7 +147,7 @@ public class AuthController {
                 
                 Map<String, String> body = Map.of("email", usuarioGuardado.getEmail(), "name", usuarioGuardado.getName());
                 HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-                restTemplate.postForEntity("http://localhost:8085/api/notifications/email/welcome", request, Void.class);
+                restTemplate.postForEntity(notificationServiceUrl + "/api/notifications/email/welcome", request, Void.class);
             } catch (Exception ex) {
                 logger.warn("No se pudo contactar a notification-service para el correo de bienvenida", ex);
             }

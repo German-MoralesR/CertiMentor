@@ -38,6 +38,9 @@ public class ReminderScheduler {
     @Value("${internal.service.token}")
     private String internalToken;
 
+    @Value("${notifications.service.url:http://localhost:8085}")
+    private String notificationsServiceUrl;
+
     public ReminderScheduler(
         MentorshipSessionRepository repository,
         UserServiceClient userServiceClient
@@ -111,7 +114,7 @@ public class ReminderScheduler {
             headers.set("X-Service-Token", internalToken);
             
             Map<String, String> body = Map.of("phoneNumber", recipient.getPhoneNumber(), "message", message);
-            restTemplate.postForEntity("http://localhost:8085/api/notifications/telegram/send", new HttpEntity<>(body, headers), Void.class);
+            restTemplate.postForEntity(notificationsServiceUrl + "/api/notifications/telegram/send", new HttpEntity<>(body, headers), Void.class);
             return true;
         } catch (Exception e) { return false; }
     }
