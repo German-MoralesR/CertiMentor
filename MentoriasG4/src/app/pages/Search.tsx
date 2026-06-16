@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Search as SearchIcon, Star, Users, Filter, ArrowLeft, AlertCircle } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface MentorshipOffer {
   id: number;
@@ -72,7 +73,7 @@ export default function Search() {
   useEffect(() => {
     const fetchOffers = async () => {
       try {
-        const response = await fetch("http://localhost:8082/api/mentorship-offers");
+        const response = await fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers`);
         if (response.ok) {
           const data: MentorshipOffer[] = await response.json();
           
@@ -85,7 +86,7 @@ export default function Search() {
 
               try {
                 // Buscar reseñas específicas para esta oferta
-                const reviewsRes = await fetch(`http://localhost:8084/api/reviews/offer/${offer.id}`);
+                const reviewsRes = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews/offer/${offer.id}`);
                 if (reviewsRes.ok) {
                   const reviews = await reviewsRes.json();
                   realReviewsCount = reviews.length;
@@ -96,7 +97,7 @@ export default function Search() {
                 }
 
                 // Buscar sesiones completadas del mentor
-                const sessionsRes = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${offer.mentorId}`);
+                const sessionsRes = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/mentor/${offer.mentorId}`);
                 if (sessionsRes.ok) {
                   const sessions = await sessionsRes.json();
                   realSessionsCount = sessions.filter((s: any) => s.status === 'completada').length;

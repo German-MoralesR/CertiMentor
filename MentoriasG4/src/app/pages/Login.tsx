@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Users, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export default function Login() {
       
       // Hacemos el fetch directamente para poder enviar el nuevo campo 'mentorRequest'
       try {
-        const response = await fetch("http://localhost:8081/api/auth/register", {
+        const response = await fetch(`${API.USER_SERVICE}/api/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 

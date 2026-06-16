@@ -10,6 +10,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface MentorshipOffer {
   id: number;
@@ -96,12 +97,12 @@ export default function MentorshipDetail() {
 
   useEffect(() => {
     if (id) {
-      fetch(`http://localhost:8082/api/mentorship-offers/${id}`)
+      fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers/${id}`)
         .then(res => res.json())
         .then(data => {
           setMentor(data);
           if (data && data.mentorId) {
-            fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${data.mentorId}`)
+            fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/mentor/${data.mentorId}`)
               .then(res => res.json())
               .then(sessions => {
                 const booked = sessions
@@ -114,12 +115,12 @@ export default function MentorshipDetail() {
               })
               .catch(err => console.error("Error fetching sessions:", err));
 
-            fetch(`http://localhost:8084/api/reviews/offer/${id}`)
+            fetch(`${API.FEEDBACK_SERVICE}/api/reviews/offer/${id}`)
               .then(res => res.json())
               .then(fetchedReviews => setReviews(fetchedReviews))
               .catch(err => console.error("Error fetching reviews:", err));
               
-            fetch(`http://localhost:8081/api/users/${data.mentorId}`)
+            fetch(`${API.USER_SERVICE}/api/users/${data.mentorId}`)
               .then(res => res.json())
               .then(userData => setMentorUser(userData))
               .catch(err => console.error("Error fetching mentor user:", err));
@@ -173,7 +174,7 @@ export default function MentorshipDetail() {
       // Guardamos la reserva pendiente temporalmente para recuperarla al volver del pago
       localStorage.setItem("pendingBooking", JSON.stringify(bookingPayload));
 
-      fetch('http://localhost:8086/api/payments/create-preference', {
+      fetch(`${API.PAYMENT_SERVICE}/api/payments/create-preference`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,7 +201,7 @@ export default function MentorshipDetail() {
 
     setIsBooking(true);
 
-    fetch('http://localhost:8083/api/mentorship-sessions', {
+    fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bookingPayload)

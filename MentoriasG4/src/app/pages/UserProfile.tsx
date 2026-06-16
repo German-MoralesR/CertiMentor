@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, User, Mail, Shield, BookOpen, Star, Clock, Edit3, Settings, LogOut, Key, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export default function UserProfile() {
       }
       
       // Obtener detalles completos del usuario para ver estado de solicitud
-      fetch(`http://localhost:8081/api/users/${user.id}`)
+      fetch(`${API.USER_SERVICE}/api/users/${user.id}`)
         .then(res => res.json())
         .then(data => {
           setFullUserDetails(data);
@@ -66,7 +67,7 @@ export default function UserProfile() {
         .catch(err => console.error("Error fetching user details", err));
 
       if (user.role === "estudiante") {
-        fetch(`http://localhost:8083/api/mentorship-sessions/student/${user.id}`)
+        fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/student/${user.id}`)
           .then(res => res.json())
           .then(sessions => {
             const completed = sessions.filter((s: any) => s.status === "completada");
@@ -81,7 +82,7 @@ export default function UserProfile() {
           .catch(err => console.error("Error fetching student stats", err));
       } else if (user.role === "mentor") {
         // Estadísticas de sesiones para el mentor
-        fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${user.id}`)
+        fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/mentor/${user.id}`)
           .then(res => res.json())
           .then(sessions => {
             const completed = sessions.filter((s: any) => s.status === "completada");
@@ -90,7 +91,7 @@ export default function UserProfile() {
           });
         
         // Promedio de calificación para el mentor
-        fetch(`http://localhost:8084/api/reviews/mentor/${user.id}`)
+        fetch(`${API.FEEDBACK_SERVICE}/api/reviews/mentor/${user.id}`)
           .then(res => res.json())
           .then(reviews => {
             if (reviews.length > 0) {
@@ -125,7 +126,7 @@ export default function UserProfile() {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/password`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${user?.id}/password`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -170,7 +171,7 @@ export default function UserProfile() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/profile`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${user?.id}/profile`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -207,7 +208,7 @@ export default function UserProfile() {
   const handleMentorRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${user?.id}/mentor-request`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${user?.id}/mentor-request`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",

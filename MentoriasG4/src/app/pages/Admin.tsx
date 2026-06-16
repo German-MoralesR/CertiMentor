@@ -16,6 +16,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface User {
   id: number;
@@ -102,7 +103,7 @@ export default function Admin() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://localhost:8081/api/users");
+        const res = await fetch(`${API.USER_SERVICE}/api/users`);
         if (res.ok) {
           const data = await res.json();
           setUsers(data.map((u: any) => ({
@@ -124,7 +125,7 @@ export default function Admin() {
 
     const fetchMentorias = async () => {
       try {
-        const res = await fetch("http://localhost:8083/api/mentorship-sessions");
+        const res = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions`);
         if (res.ok) {
           const data = await res.json();
           setMentorías(data.map((m: any) => ({
@@ -145,7 +146,7 @@ export default function Admin() {
 
     const fetchRequests = async () => {
       try {
-        const res = await fetch("http://localhost:8081/api/solicitudes");
+        const res = await fetch(`${API.USER_SERVICE}/api/solicitudes`);
         if (res.ok) {
           const data = await res.json();
           setRequests(data.map((req: any) => {
@@ -182,7 +183,7 @@ export default function Admin() {
   // Funciones para usuarios
   const toggleUserStatus = async (id: number) => {
     try {
-      const res = await fetch(`http://localhost:8081/api/users/${id}/status`, { method: "PUT" });
+      const res = await fetch(`${API.USER_SERVICE}/api/users/${id}/status`, { method: "PUT" });
       if (res.ok) {
         setUsers(
           users.map((user) =>
@@ -200,7 +201,7 @@ export default function Admin() {
 
   const handleApproveMentor = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${id}/approve-mentor`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${id}/approve-mentor`, {
         method: "PUT"
       });
       if (response.ok) {
@@ -221,7 +222,7 @@ export default function Admin() {
   const handleRejectMentor = async (id: number) => {
     if (!rejectReason.trim()) return;
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${id}/reject-mentor`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${id}/reject-mentor`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: rejectReason })

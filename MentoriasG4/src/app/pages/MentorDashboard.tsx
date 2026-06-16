@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Plus, X, Star, Trash2, Edit2, Calendar, AlertCircle } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface MentorshipOffer {
   id: number;
@@ -98,7 +99,7 @@ export default function MentorDashboard() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${currentMentorId}`);
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/mentor/${currentMentorId}`);
       if (response.ok) {
         const data = await response.json();
         setRealCompletedSessions(data.filter((s: any) => s.status === 'completada').length);
@@ -111,7 +112,7 @@ export default function MentorDashboard() {
   const fetchOffers = async () => {
     if (!currentMentorId) return;
     try {
-      const response = await fetch(`http://localhost:8082/api/mentorship-offers/mentor/${currentMentorId}`);
+      const response = await fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers/mentor/${currentMentorId}`);
       if (response.ok) {
         const data = await response.json();
         // Filtramos las ofertas eliminadas lógicamente
@@ -123,7 +124,7 @@ export default function MentorDashboard() {
             let realRating = offer.rating;
             let realReviewsCount = offer.reviews;
             try {
-              const reviewsRes = await fetch(`http://localhost:8084/api/reviews/offer/${offer.id}`);
+              const reviewsRes = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews/offer/${offer.id}`);
               if (reviewsRes.ok) {
                 const reviews = await reviewsRes.json();
                 realReviewsCount = reviews.length;
@@ -218,9 +219,9 @@ export default function MentorDashboard() {
     };
 
     try {
-      const url = editingId 
-        ? `http://localhost:8082/api/mentorship-offers/${editingId}`
-        : `http://localhost:8082/api/mentorship-offers`;
+      const url = editingId
+        ? `${API.MENTORSHIP_SERVICE}/api/mentorship-offers/${editingId}`
+        : `${API.MENTORSHIP_SERVICE}/api/mentorship-offers`;
       const method = editingId ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -263,7 +264,7 @@ export default function MentorDashboard() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8082/api/mentorship-offers/${id}`, {
+      const response = await fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers/${id}`, {
         method: "DELETE",
       });
       if (response.ok) {

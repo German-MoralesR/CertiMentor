@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface ScheduledMentorship {
   id: number;
@@ -75,7 +76,7 @@ export default function MentorSchedule() {
   const fetchMentorSessions = async () => {
     if (!currentMentorId) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/mentor/${currentMentorId}`);
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/mentor/${currentMentorId}`);
       if (response.ok) {
         const data = await response.json();
         setMentorships(data);
@@ -120,7 +121,7 @@ export default function MentorSchedule() {
     if (!mentorshipDetail || !platformLinkInput) return;
 
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${mentorshipDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${mentorshipDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "aprobada", platformLink: platformLinkInput }),
@@ -138,7 +139,7 @@ export default function MentorSchedule() {
     if (!mentorshipDetail) return;
 
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${mentorshipDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${mentorshipDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "cancelada", cancelReason: rejectReason.trim(), platformLink: "" }),
@@ -155,7 +156,7 @@ export default function MentorSchedule() {
   const handleFinishSession = async () => {
     if (!mentorshipDetail) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${mentorshipDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${mentorshipDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "esperando_confirmacion" }),

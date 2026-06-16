@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
+import { API } from "../config";
 
 export interface ScheduledMentorship {
   id: number;
@@ -75,7 +76,7 @@ export default function StudentSchedule() {
   const fetchSessions = async () => {
     if (!currentStudentId) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/student/${currentStudentId}`);
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/student/${currentStudentId}`);
       if (response.ok) {
         const data = await response.json();
         setStudentSessions(data);
@@ -99,7 +100,7 @@ export default function StudentSchedule() {
         const bookingPayload = JSON.parse(pendingBookingStr);
         localStorage.removeItem("pendingBooking"); // Limpiar para no duplicar
 
-        fetch('http://localhost:8083/api/mentorship-sessions', {
+        fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bookingPayload)
@@ -149,7 +150,7 @@ export default function StudentSchedule() {
     
     if (session && currentStudentId) {
       try {
-        const res = await fetch(`http://localhost:8084/api/reviews/exists?offerId=${session.offerId}&studentId=${currentStudentId}`);
+        const res = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews/exists?offerId=${session.offerId}&studentId=${currentStudentId}`);
         if (res.ok) {
           const exists = await res.json();
           setReviewSubmitted(exists);
@@ -161,7 +162,7 @@ export default function StudentSchedule() {
   const handleCompleteSession = async () => {
     if (!sessionDetail) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${sessionDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "completada", platformLink: sessionDetail.platformLink }),
@@ -179,7 +180,7 @@ export default function StudentSchedule() {
     const reason = prompt("Por favor, describe brevemente por qué estás abriendo una disputa (ej: el mentor no se presentó).");
     if (!reason) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${sessionDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "disputada", topic: sessionDetail.topic + ` [DISPUTA: ${reason}]` }),
@@ -196,7 +197,7 @@ export default function StudentSchedule() {
   const confirmCancelSession = async () => {
     if (!sessionDetail) return;
     try {
-      const response = await fetch(`http://localhost:8083/api/mentorship-sessions/${sessionDetail.id}`, {
+      const response = await fetch(`${API.SCHEDULING_SERVICE}/api/mentorship-sessions/${sessionDetail.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: "cancelada", cancelReason: cancelReason.trim() }),
@@ -214,7 +215,7 @@ export default function StudentSchedule() {
     if (!sessionDetail || !currentStudentId) return;
     try {
       const reviewPayload = { mentorId: sessionDetail.mentorId, offerId: sessionDetail.offerId, studentId: currentStudentId, rating, comment };
-      const response = await fetch("http://localhost:8084/api/reviews", {
+      const response = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reviewPayload)

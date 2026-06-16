@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Edit3, Save, Mail, Shield, User, BookOpen } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { API } from "../config";
 
 export default function MentorProfile() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function MentorProfile() {
   useEffect(() => {
     if (id) {
       // Obtener datos del usuario (mentor)
-      fetch(`http://localhost:8081/api/users/${id}`)
+      fetch(`${API.USER_SERVICE}/api/users/${id}`)
         .then(res => res.json())
         .then(data => {
           setMentorUser(data);
@@ -28,7 +29,7 @@ export default function MentorProfile() {
         .catch(err => console.error("Error fetching user profile:", err));
 
       // Obtener ofertas activas del mentor para listarlas en su perfil
-      fetch(`http://localhost:8082/api/mentorship-offers/mentor/${id}`)
+      fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers/mentor/${id}`)
         .then(res => res.json())
         .then(data => setMentorOffers(data.filter((o: any) => o.status !== "eliminada")))
         .catch(err => console.error("Error fetching mentor offers:", err));
@@ -37,7 +38,7 @@ export default function MentorProfile() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`http://localhost:8081/api/users/${id}/profile`, {
+      const response = await fetch(`${API.USER_SERVICE}/api/users/${id}/profile`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
