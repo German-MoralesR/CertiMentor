@@ -23,6 +23,7 @@ public class PaymentController {
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
+    /* 
     @PostMapping("/create-preference")
     public ResponseEntity<?> createPreference(@RequestBody Map<String, Object> request) {
         try {
@@ -58,6 +59,42 @@ public class PaymentController {
             Preference preference = client.create(preferenceRequest);
 
             // Retornamos el link de pago que nos da Mercado Pago
+            return ResponseEntity.ok(Map.of("init_point", preference.getInitPoint(), "id", preference.getId()));
+
+        } catch (MPApiException e) {
+            System.err.println("Error detallado MercadoPago: " + e.getApiResponse().getContent());
+            return ResponseEntity.status(e.getApiResponse().getStatusCode()).body(Map.of("error", "MP Error: " + e.getApiResponse().getContent()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+    */
+
+    @PostMapping("/create-preference")
+    public ResponseEntity<?> createPreference(@RequestBody Map<String, Object> request) {
+        try {
+            String title = (String) request.get("title");
+            BigDecimal price = new BigDecimal(request.get("price").toString());
+            
+            PreferenceItemRequest itemRequest = PreferenceItemRequest.builder()
+                    .title(title)
+                    .quantity(1)
+                    .unitPrice(price)
+                    .currencyId("CLP")
+                    .build();
+
+            List<PreferenceItemRequest> items = new ArrayList<>();
+            items.add(itemRequest);
+
+            // Preferencia mínima sin backUrls ni autoReturn
+            PreferenceRequest preferenceRequest = PreferenceRequest.builder()
+                    .items(items)
+                    .build();
+
+            PreferenceClient client = new PreferenceClient();
+            Preference preference = client.create(preferenceRequest);
+
             return ResponseEntity.ok(Map.of("init_point", preference.getInitPoint(), "id", preference.getId()));
 
         } catch (MPApiException e) {
