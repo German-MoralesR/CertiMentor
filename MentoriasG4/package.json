@@ -65,11 +65,11 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.1.12",
+    "@tailwindcss/vite": "4.0.0",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "^8.0.14"
+    "vite": "^6.3.5"
   },
   "peerDependencies": {
     "react": "18.3.1",
