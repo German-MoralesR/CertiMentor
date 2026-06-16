@@ -22,7 +22,12 @@ public class EmailNotificationController {
     @PostMapping("/welcome")
     public ResponseEntity<?> notifyWelcome(@RequestHeader(value = "X-Service-Token", required = false) String token, 
                                            @RequestBody Map<String, String> payload) {
-        if (!internalToken.equals(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        System.out.println("=== /welcome recibido. Token recibido: [" + token + "], Token esperado: [" + internalToken + "] ===");
+        if (!internalToken.equals(token)) {
+            System.out.println("=== TOKEN NO COINCIDE, devolviendo 401 ===");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        System.out.println("=== Enviando correo a: " + payload.get("email") + " ===");
         emailService.sendWelcomeEmail(payload.get("email"), payload.get("name"));
         return ResponseEntity.ok().build();
     }
@@ -30,8 +35,12 @@ public class EmailNotificationController {
     @PostMapping("/booking")
     public ResponseEntity<?> notifyBooking(@RequestHeader(value = "X-Service-Token", required = false) String token, 
                                            @RequestBody Map<String, String> payload) {
-        if (!internalToken.equals(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+        System.out.println("=== /booking recibido. Token recibido: [" + token + "], Token esperado: [" + internalToken + "] ===");
+        if (!internalToken.equals(token)) {
+            System.out.println("=== TOKEN NO COINCIDE, devolviendo 401 ===");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        System.out.println("=== Enviando correos a: " + payload.get("studentEmail") + " y " + payload.get("mentorEmail") + " ===");
         emailService.sendBookingStudentEmail(payload.get("studentEmail"), payload.get("studentName"), payload.get("mentorName"), payload.get("date"), payload.get("time"));
         emailService.sendBookingMentorEmail(payload.get("mentorEmail"), payload.get("mentorName"), payload.get("studentName"), payload.get("date"), payload.get("time"));
         return ResponseEntity.ok().build();
@@ -40,8 +49,12 @@ public class EmailNotificationController {
     @PostMapping("/cancellation")
     public ResponseEntity<?> notifyCancellation(@RequestHeader(value = "X-Service-Token", required = false) String token, 
                                                 @RequestBody Map<String, String> payload) {
-        if (!internalToken.equals(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
+        System.out.println("=== /cancellation recibido. Token recibido: [" + token + "], Token esperado: [" + internalToken + "] ===");
+        if (!internalToken.equals(token)) {
+            System.out.println("=== TOKEN NO COINCIDE, devolviendo 401 ===");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        System.out.println("=== Enviando correos de cancelación a: " + payload.get("studentEmail") + " y " + payload.get("mentorEmail") + " ===");
         emailService.sendCancellationEmail(payload.get("studentEmail"), payload.get("studentName"), payload.get("date"), payload.get("reason"));
         emailService.sendCancellationEmail(payload.get("mentorEmail"), payload.get("mentorName"), payload.get("date"), payload.get("reason"));
         return ResponseEntity.ok().build();
