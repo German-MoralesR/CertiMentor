@@ -6,6 +6,8 @@ import com.mercadopago.client.preference.PreferenceItemRequest;
 import com.mercadopago.client.preference.PreferenceRequest;
 import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.resources.preference.Preference;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +18,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "http://localhost:5173") // Permitir peticiones desde tu Frontend React
 public class PaymentController {
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     @PostMapping("/create-preference")
     public ResponseEntity<?> createPreference(@RequestBody Map<String, Object> request) {
@@ -38,9 +42,9 @@ public class PaymentController {
 
             // 2. Configurar a dónde volverá el usuario luego de pagar
             PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
-                    .success("http://localhost:5173/student-schedule?payment=success")
-                    .pending("http://localhost:5173/student-schedule?payment=pending")
-                    .failure("http://localhost:5173/oferta/" + request.get("offerId") + "?payment=failure")
+                    .success(frontendUrl + "/student-schedule?payment=success")
+                    .pending(frontendUrl + "/student-schedule?payment=pending")
+                    .failure(frontendUrl + "/oferta/" + request.get("offerId") + "?payment=failure")
                     .build();
 
             // 3. Crear la Preferencia
