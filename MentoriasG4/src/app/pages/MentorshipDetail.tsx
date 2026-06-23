@@ -5,6 +5,7 @@ import {
   Star,
   CheckCircle2,
   User,
+  LogOut,
   Calendar,
   Clock,
   MessageCircle,
@@ -46,7 +47,7 @@ export interface Review {
 export default function MentorshipDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
 
   const [mentor, setMentor] = useState<MentorshipOffer | null>(null);
   const [mentorUser, setMentorUser] = useState<any>(null);
@@ -180,7 +181,9 @@ export default function MentorshipDetail() {
         body: JSON.stringify({
           title: `Mentoría: ${mentor.title}`,
           price: mentor.price,
-          offerId: mentor.id
+          offerId: mentor.id,
+          studentId: user.id,
+          mentorId: mentor.mentorId
         })
       })
       .then(res => res.json())
@@ -228,7 +231,7 @@ export default function MentorshipDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="border-b sticky top-0 bg-white/80 backdrop-blur-sm z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate("/buscar")}
@@ -238,22 +241,39 @@ export default function MentorshipDetail() {
             Volver a búsqueda
           </button>
           
-          {isLoggedIn && (
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {isLoggedIn && (
+              <>
               <button
                 onClick={() => navigate("/student-schedule")}
-                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
               >
+                <Clock className="w-4 h-4" />
                 Mis Sesiones
               </button>
-              <button
-                onClick={() => navigate("/perfil")}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
-              >
-                <span className="font-medium">Mi Perfil</span>
-              </button>
-            </div>
-          )}
+
+              {/* Perfil y Logout */}
+              <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
+                <button onClick={() => navigate("/perfil")} className="flex items-center gap-3 text-left hover:bg-gray-100 p-1 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {user?.profileImage ? (
+                      <img src={user.profileImage} alt="Perfil" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-indigo-600">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                    )}
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
+                  </div>
+                </button>
+                <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 

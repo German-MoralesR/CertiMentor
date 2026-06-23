@@ -1,20 +1,124 @@
 import { useNavigate } from "react-router";
-import { Clock, Users, Star, ArrowRight, CheckCircle2, Shield, LogOut, User } from "lucide-react";
+import { Clock, Users, Star, ArrowRight, CheckCircle2, LogOut, User, Search, Award } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { API } from "../config";
+
+export interface MentorshipOffer {
+  id: number;
+  mentorId: number;
+  mentorName: string;
+  title: string;
+  image: string;
+  price: number;
+  sessionsCompleted: number;
+  rating: number;
+  reviews: number;
+  status?: string;
+  skills: string[];
+}
+
+export interface Review {
+  id: number;
+  studentId: number;
+  studentName?: string;
+  studentImage?: string;
+  rating: number;
+  comment: string;
+}
 
 export default function Landing() {
   const navigate = useNavigate();
   const { user, logout, isLoggedIn } = useAuth();
+  const [featuredMentors, setFeaturedMentors] = useState<MentorshipOffer[]>([]);
+  const [testimonials, setTestimonials] = useState<Review[]>([]);
+
+  useEffect(() => {
+    // Fetch featured mentors
+    const fetchMentors = async () => {
+      try {
+        const response = await fetch(`${API.MENTORSHIP_SERVICE}/api/mentorship-offers`);
+        if (response.ok) {
+          const data: MentorshipOffer[] = await response.json();
+          // Enrich with live data and take the top 3 rated
+          const enrichedOffers = await Promise.all(
+            data.map(async (offer) => {
+              let realRating = 0;
+              let realReviewsCount = 0;
+              try {
+                const reviewsRes = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews/offer/${offer.id}`);
+                if (reviewsRes.ok) {
+                  const reviews = await reviewsRes.json();
+                  realReviewsCount = reviews.length;
+                  if (realReviewsCount > 0) {
+                    const totalStars = reviews.reduce((acc: any, rev: any) => acc + rev.rating, 0);
+                    realRating = Number((totalStars / realReviewsCount).toFixed(1));
+                  }
+                }
+              } catch (e) {}
+              return { ...offer, rating: realRating, reviews: realReviewsCount };
+            })
+          );
+          
+          const activeOffers = enrichedOffers.filter(o => o.status !== 'eliminada');
+          
+          // Sort by rating and reviews, then take top 3
+          activeOffers.sort((a, b) => {
+            if (b.rating !== a.rating) {
+              return b.rating - a.rating;
+            }
+            return b.reviews - a.reviews;
+          });
+
+          setFeaturedMentors(activeOffers.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Error fetching featured mentors:", error);
+      }
+    };
+
+    // Fetch testimonials
+    const fetchTestimonials = async () => {
+      try {
+        const response = await fetch(`${API.FEEDBACK_SERVICE}/api/reviews`);
+        if (response.ok) {
+          const reviews: Review[] = await response.json();
+          // Filter for good reviews with comments
+          const goodReviews = reviews.filter(r => r.rating >= 4 && r.comment).slice(0, 3);
+          
+          // Enrich with student data
+          const enrichedReviews = await Promise.all(
+            goodReviews.map(async (review) => {
+              try {
+                const userRes = await fetch(`${API.USER_SERVICE}/api/users/${review.studentId}`);
+                if (userRes.ok) {
+                  const studentData = await userRes.json();
+                  return { ...review, studentName: studentData.name, studentImage: studentData.profileImage };
+                }
+              } catch (e) {}
+              return { ...review, studentName: "Estudiante Anónimo" }; // Fallback
+            })
+          );
+          setTestimonials(enrichedReviews);
+        }
+      } catch (error) {
+        console.error("Error fetching testimonials:", error);
+      }
+    };
+
+    fetchMentors();
+    fetchTestimonials();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b">
+      <header className="border-b sticky top-0 bg-white/80 backdrop-blur-sm z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+              <Award className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-semibold text-gray-900">CertiMentor</span>
           </div>
@@ -27,7 +131,7 @@ export default function Landing() {
                     onClick={() => navigate("/admin")}
                     className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
                   >
-                    🔒 Panel Admin
+                    <User className="w-4 h-4" /> Panel Admin
                   </button>
                 )}
 
@@ -37,13 +141,13 @@ export default function Landing() {
                       onClick={() => navigate("/mentor-dashboard")}
                       className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
                     >
-                      👨‍🏫 Mi Dashboard
+                      <Users className="w-4 h-4" /> Mi Dashboard
                     </button>
                     <button
                       onClick={() => navigate("/mentor-schedule")}
                       className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
                     >
-                      📅 Mi Calendario
+                      <Clock className="w-4 h-4" /> Mi Calendario
                     </button>
                   </>
                 )}
@@ -54,42 +158,49 @@ export default function Landing() {
                       onClick={() => navigate("/buscar")}
                       className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
                     >
-                      🔍 Buscar Mentores
+                      <Search className="w-4 h-4" /> Buscar Mentores
                     </button>
                     <button
                       onClick={() => navigate("/student-schedule")}
                       className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm"
                     >
-                      📅 Mis Sesiones
+                      <Clock className="w-4 h-4" /> Mis Sesiones
                     </button>
                   </>
                 )}
 
                 {/* Perfil y Logout */}
-                <div className="flex items-center gap-2 ml-4 pl-4 border-l border-gray-200">
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900">{user?.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">
-                      {user?.role === "estudiante"
-                        ? "🎓 Estudiante"
-                        : user?.role === "mentor"
-                        ? "👨‍🏫 Mentor"
-                        : "🔒 Admin"}
+                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
+                  <button onClick={() => navigate("/perfil")} className="flex items-center gap-3 text-left hover:bg-gray-100 p-1 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {user?.profileImage ? (
+                        <img src={user.profileImage} alt="Perfil" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg font-bold text-indigo-600">
+                          {user?.name?.charAt(0).toUpperCase() || "U"}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                    <button
-                      onClick={() => navigate("/perfil")}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Mi Perfil"
-                    >
-                      <User className="w-4 h-4" />
-                    </button>
+                    <div className="hidden sm:block">
+                      <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+                      <div className="text-xs text-gray-500 capitalize">
+                        {user?.role}
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Cerrar Sesión"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
                 </div>
               </>
             ) : (
               <button
                 onClick={() => navigate("/login")}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
               >
                 Iniciar sesión
               </button>
@@ -99,12 +210,12 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <section className="relative bg-indigo-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Resuelve tus dudas en{" "}
-              <span className="text-indigo-600">15 minutos</span>
+              Desbloquea tu potencial con mentorías <span className="text-indigo-600">uno a uno</span>
             </h1>
             <p className="text-lg text-gray-600 mb-8">
               Conecta con mentores expertos que te ayudarán con sesiones breves y
@@ -117,7 +228,7 @@ export default function Landing() {
                   {user?.role === "estudiante" && (
                     <button
                       onClick={() => navigate("/buscar")}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                       Buscar mentores
                       <ArrowRight className="w-5 h-5" />
@@ -126,7 +237,7 @@ export default function Landing() {
                   {user?.role === "mentor" && (
                     <button
                       onClick={() => navigate("/mentor-dashboard")}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                       Mi Dashboard
                       <ArrowRight className="w-5 h-5" />
@@ -135,7 +246,7 @@ export default function Landing() {
                   {user?.role === "admin" && (
                     <button
                       onClick={() => navigate("/admin")}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                       Panel de Control
                       <ArrowRight className="w-5 h-5" />
@@ -145,15 +256,15 @@ export default function Landing() {
               ) : (
                 <>
                   <button
-                    onClick={() => navigate("/buscar")}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                    onClick={() => navigate(isLoggedIn ? "/buscar" : "/login")}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 font-medium"
                   >
                     Buscar mentores
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => navigate("/login")}
-                    className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-colors"
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
                   >
                     Ser mentor
                   </button>
@@ -165,18 +276,19 @@ export default function Landing() {
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1673515335586-f9f662c01482?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvbmxpbmUlMjBtZW50b3JpbmclMjBzdHVkZW50cyUyMGxlYXJuaW5nfGVufDF8fHx8MTc3MzkxNzc4MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
               alt="Estudiantes aprendiendo"
-              className="w-full h-[400px] object-cover rounded-2xl shadow-xl"
+              className="w-full h-full max-h-[400px] object-cover rounded-2xl shadow-xl"
             />
           </div>
+        </div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="bg-gray-50 py-12">
+      <section className="bg-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold text-indigo-600 mb-2">15-30min</div>
+              <div className="text-4xl font-bold text-indigo-600 mb-2">15-40min</div>
               <div className="text-gray-600">Duración de sesión</div>
             </div>
             <div className="text-center">
@@ -192,15 +304,15 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-        <div className="text-center mb-12">
+      <section className="bg-gray-50 max-w-full px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+        <div className="text-center mb-12 max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">¿Cómo funciona?</h2>
           <p className="text-lg text-gray-600">
             En 3 simples pasos conectas con un mentor
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="text-center">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-indigo-600" />
@@ -223,7 +335,7 @@ export default function Landing() {
             </h3>
             <p className="text-gray-600">
               Selecciona un horario disponible que se ajuste a tu agenda y reserva tu
-              micro-mentoría de 15-30 minutos.
+              micro-mentoría de 15-40 minutos.
             </p>
           </div>
 
@@ -242,8 +354,108 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Featured Mentors */}
+      {featuredMentors.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Conoce a nuestros mentores</h2>
+            <p className="text-lg text-gray-600">
+              Estas son algunas de nuestras mentorías mejor valoradas por la comunidad.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredMentors.map((mentor) => (
+              <div
+                key={mentor.id}
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={() => navigate(`/oferta/${mentor.id}`)}
+              >
+                <div className="relative h-48 bg-gray-200">
+                  <ImageWithFallback
+                    src={mentor.image}
+                    alt={mentor.mentorName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">
+                        {mentor.title}
+                      </h3>
+                      <p className="text-sm text-gray-600">{mentor.mentorName}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold text-gray-900">
+                        {mentor.rating}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      ({mentor.reviews} reseñas)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {(mentor.skills || []).slice(0, 3).map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-md font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials */}
+      {testimonials.length > 0 && (
+        <section className="bg-gray-50 py-16 lg:py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12 max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Lo que nuestros estudiantes dicen</h2>
+            </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              {testimonials.map(review => (
+                <div key={review.id} className="bg-white p-8 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-6">"{review.comment}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden">
+                      {review.studentImage ? (
+                        <img src={review.studentImage} alt={review.studentName} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-6 h-6 text-indigo-600" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{review.studentName}</div>
+                      <div className="text-sm text-gray-500">Estudiante</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Benefits */}
-      <section className="bg-gray-50 py-16 lg:py-24">
+      <section className="bg-white py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -323,7 +535,7 @@ export default function Landing() {
             aprendizaje con micro-mentorías personalizadas.
           </p>
           <button
-            onClick={() => navigate("/buscar")}
+            onClick={() => navigate(isLoggedIn ? "/buscar" : "/login")}
             className="px-8 py-3 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
           >
             Explorar mentores

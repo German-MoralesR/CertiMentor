@@ -6,6 +6,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "admin" | "mentor" | "estudiante";
+  profileImage?: string;
 }
 
 interface AuthContextType {
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           name: data.name,
           email: data.email,
           role: data.role as "admin" | "mentor" | "estudiante",
+          profileImage: data.profileImage,
         };
 
         setUser(loggedUser);

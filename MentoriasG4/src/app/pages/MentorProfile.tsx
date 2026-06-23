@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Edit3, Save, Mail, Shield, User, BookOpen } from "lucide-react";
+import { ArrowLeft, Edit3, Save, Mail, Shield, User, BookOpen, Award, LogOut, Clock, Users, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { API } from "../config";
@@ -8,7 +8,7 @@ import { API } from "../config";
 export default function MentorProfile() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
 
   const [mentorUser, setMentorUser] = useState<any>(null);
   const [mentorOffers, setMentorOffers] = useState<any[]>([]);
@@ -69,15 +69,66 @@ export default function MentorProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="border-b sticky top-0 bg-white/80 backdrop-blur-sm z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Volver
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <Award className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-semibold text-gray-900">CertiMentor</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isLoggedIn && user ? (
+              <>
+                {user.role === 'estudiante' && (
+                  <button onClick={() => navigate("/buscar")} className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm">
+                    <Search className="w-4 h-4" /> Buscar Mentores
+                  </button>
+                )}
+                {user.role === 'mentor' && (
+                  <button onClick={() => navigate("/mentor-dashboard")} className="px-3 py-2 text-gray-700 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm">
+                    <Users className="w-4 h-4" /> Mi Dashboard
+                  </button>
+                )}
+
+                {/* Perfil y Logout */}
+                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
+                  <button onClick={() => navigate("/perfil")} className="flex items-center gap-3 text-left hover:bg-gray-100 p-1 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {user?.profileImage ? (
+                        <img src={user.profileImage} alt="Perfil" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg font-bold text-indigo-600">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                      )}
+                    </div>
+                    <div className="hidden sm:block">
+                      <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+                      <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
+                    </div>
+                  </button>
+                  <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Iniciar sesión
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
