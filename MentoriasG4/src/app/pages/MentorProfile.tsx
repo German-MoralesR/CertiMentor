@@ -100,7 +100,7 @@ export default function MentorProfile() {
                   </button>
                 )}
 
-                {/* Perfil y Logout */}
+                {/* Perfil */}
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
                   <button onClick={() => navigate("/perfil")} className="flex items-center gap-3 text-left hover:bg-gray-100 p-1 rounded-lg transition-colors">
                     <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -114,9 +114,6 @@ export default function MentorProfile() {
                       <div className="text-sm font-medium text-gray-900">{user?.name}</div>
                       <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
                     </div>
-                  </button>
-                  <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
-                    <LogOut className="w-5 h-5" />
                   </button>
                 </div>
               </>
@@ -176,9 +173,33 @@ export default function MentorProfile() {
                   </div>
 
                   {isOwnProfile && (
-                    <button onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm">
-                      <Edit3 className="w-4 h-4" /> Modificar mi Perfil
-                    </button>
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
+                      <div className="p-6 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-gray-500" /> Acciones de Cuenta
+                        </h3>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                          <div>
+                            <p className="font-medium text-gray-900">Editar Perfil</p>
+                            <p className="text-sm text-gray-500">Actualiza tu información pública de mentor.</p>
+                          </div>
+                          <button onClick={() => setIsEditing(true)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium px-3 py-1 bg-indigo-50 rounded-lg transition-colors">
+                            Editar
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between py-2">
+                          <div>
+                            <p className="font-medium text-gray-900">Cerrar Sesión</p>
+                            <p className="text-sm text-gray-500">Finaliza tu sesión actual y vuelve a la página de inicio.</p>
+                          </div>
+                          <button onClick={logout} className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 bg-red-50 rounded-lg transition-colors">
+                            Cerrar Sesión
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
