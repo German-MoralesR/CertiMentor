@@ -280,7 +280,7 @@ export default function UserProfile() {
                   </>
                 )}
 
-                {/* Perfil */}
+                {/* Perfil y Logout */}
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
                   <div className="flex items-center gap-3 text-left bg-indigo-50 border border-indigo-200 p-1 rounded-lg">
                     <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -295,6 +295,9 @@ export default function UserProfile() {
                       <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
                     </div>
                   </div>
+                  <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
+                    <LogOut className="w-5 h-5" />
+                  </button>
                 </div>
               </>
             )}
@@ -452,19 +455,6 @@ export default function UserProfile() {
                 </button>
               </div>
             )}
-
-            <div className="flex items-center justify-between py-2 border-t border-gray-100">
-              <div>
-                <p className="font-medium text-gray-900">Cerrar Sesión</p>
-                <p className="text-sm text-gray-500">Finaliza tu sesión desde las opciones de cuenta.</p>
-              </div>
-              <button 
-                onClick={logout}
-                className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 bg-red-50 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <LogOut className="w-4 h-4" /> Logout
-              </button>
-            </div>
 
           </div>
         </div>
