@@ -411,7 +411,7 @@ export default function MentorDashboard() {
                   Mi Calendario
                 </button>
 
-                {/* Perfil y Logout */}
+                {/* Perfil */}
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
                   <button onClick={() => navigate("/perfil")} className="flex items-center gap-3 text-left hover:bg-gray-100 p-1 rounded-lg transition-colors">
                     <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -425,9 +425,6 @@ export default function MentorDashboard() {
                       <div className="text-sm font-medium text-gray-900">{user?.name}</div>
                       <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
                     </div>
-                  </button>
-                  <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
-                    <LogOut className="w-5 h-5" />
                   </button>
                 </div>
               </>
